@@ -1,7 +1,7 @@
 <div align="center">
 
-# EdgeQoS-IIoT
-### Autonomous Predictive Edge Telemetry & Real-Time QoS Optimization for Industrial IoT
+# HELM-IIoT
+### Hybrid Edge Latency Monitor & Autonomous QoS Optimization for Industrial Networks
 
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.40+-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
@@ -150,8 +150,8 @@ ECE_PBL_Project/
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/rakeshraks2612-maker/ECE_PBL_Project.git
-cd ECE_PBL_Project
+git clone https://github.com/rakeshraks2612-maker/HELM-IIoT.git
+cd HELM-IIoT
 ```
 
 ### 2. Set Up Virtual Environment
