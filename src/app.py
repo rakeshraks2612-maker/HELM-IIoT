@@ -68,6 +68,17 @@ if "peak_temp" not in st.session_state:
     st.session_state.peak_temp = 49.2
 if "peak_latency" not in st.session_state:
     st.session_state.peak_latency = 44.8
+if "alarm_ack" not in st.session_state:
+    st.session_state.alarm_ack = True
+if "alarm_muted" not in st.session_state:
+    st.session_state.alarm_muted = False
+if "playbooks" not in st.session_state:
+    st.session_state.playbooks = {
+        "pb_shedding": True,
+        "pb_thermal": True,
+        "pb_failover": True,
+        "pb_drift_retrain": True
+    }
 
 # Initialize Industrial Sequence-of-Events (SOE) & Alarm Logs
 if "incident_logs" not in st.session_state:
@@ -392,6 +403,54 @@ def render_scada_kpi_card(tag_id, label, value, unit, nominal_range, limit_val, 
             <span>NOM: <b style="color: #94a3b8;">{nominal_range}</b></span>
             <span>LIM: <b style="color: #f59e0b;">{limit_val}</b></span>
         </div>
+    </div>
+    """
+
+# ISA-18.2 Industrial Annunciator Tile Matrix
+def render_alarm_annunciator_strip(is_lat_alm, is_drop_alm, is_buf_alm, is_temp_alm, failover_engaged):
+    tiles = [
+        {"code": "ANN-01", "name": "LATENCY SLA", "tag": "LAT-RTT-01", "active": is_lat_alm, "crit": True, "val": "HIGH RTT"},
+        {"code": "ANN-02", "name": "FRAME LOSS", "tag": "DROP-ERR-03", "active": is_drop_alm, "crit": True, "val": "LOSS BURST"},
+        {"code": "ANN-03", "name": "TSN QUEUE SAT", "tag": "BUFF-Q-04", "active": is_buf_alm, "crit": False, "val": "BUFFER HIGH"},
+        {"code": "ANN-04", "name": "CORE OVERTEMP", "tag": "TEMP-JC-05", "active": is_temp_alm, "crit": False, "val": "THERMAL RUN"},
+        {"code": "ANN-05", "name": "HA REDUNDANCY", "tag": "PLC-FAILOVER", "active": failover_engaged, "crit": False, "val": "STANDBY ACTIVE"},
+        {"code": "ANN-06", "name": "IEC-62443 CONDUIT", "tag": "ZONE-2-SEC", "active": False, "crit": False, "val": "SL-3 LOCKED"}
+    ]
+    
+    tile_htmls = []
+    for t in tiles:
+        if t["active"]:
+            bg = "#7f1d1d" if t["crit"] else "#78350f"
+            border = "#dc2626" if t["crit"] else "#d97706"
+            txt_c = "#fca5a5" if t["crit"] else "#fcd34d"
+            lamp_c = "#ef4444" if t["crit"] else "#f59e0b"
+            state_lbl = "ALARM"
+        else:
+            bg = "#111827"
+            border = "#1e293b"
+            txt_c = "#64748b"
+            lamp_c = "#10b981"
+            state_lbl = "NORMAL"
+            
+        tile_htmls.append(f"""
+        <div style="background: {bg}; border: 1px solid {border}; border-radius: 3px; padding: 6px 8px; flex: 1; min-width: 100px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 8px; color: #64748b;">{t['code']}</span>
+                <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: {lamp_c};"></span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 10px; color: {'#f8fafc' if t['active'] else '#94a3b8'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {t['name']}
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 3px; font-size: 8.5px; font-family: monospace;">
+                <span style="color: {txt_c}; font-weight: bold;">{state_lbl}</span>
+                <span style="color: #64748b;">{t['val']}</span>
+            </div>
+        </div>
+        """)
+        
+    return f"""
+    <div style="display: flex; gap: 6px; margin-bottom: 10px; width: 100%;">
+        {''.join(tile_htmls)}
     </div>
     """
 
@@ -775,6 +834,33 @@ def render_live_scada_telemetry():
         })
 
     # -----------------------------------------------------------------
+    # ISA-18.2 ALARM ANNUNCIATOR STRIP & OPERATOR ACKNOWLEDGMENT DECK
+    # -----------------------------------------------------------------
+    is_lat_alm = predicted_latency >= st.session_state.latency_threshold_ms
+    is_drop_alm = packet_drop >= st.session_state.failover_drop_threshold
+    is_temp_alm = temperature >= st.session_state.throttling_temp_threshold
+    is_buf_alm = buffer_util >= 85.0
+
+    st.html(render_alarm_annunciator_strip(is_lat_alm, is_drop_alm, is_buf_alm, is_temp_alm, failover_engaged))
+
+    ack_c1, ack_c2, ack_c3, ack_c4 = st.columns([1.5, 1, 1, 1.5])
+    with ack_c1:
+        if st.button("✓ Acknowledge All Alarms", key="btn_ack_all"):
+            st.session_state.alarm_ack = True
+            st.toast("ISA-18.2 Operator Event: All active alarms acknowledged.")
+    with ack_c2:
+        if st.button("⎋ Mute Horn", key="btn_mute_horn"):
+            st.session_state.alarm_muted = not st.session_state.alarm_muted
+            st.toast(f"Alarm Horn: {'MUTED' if st.session_state.alarm_muted else 'ACTIVE'}")
+    with ack_c3:
+        if st.button("▤ Shelve (1h)", key="btn_shelve_alarm"):
+            st.toast("Alarm Shelved: Warning alerts suppressed for 60 minutes.")
+    with ack_c4:
+        st.markdown(f"<div style='font-family:monospace; font-size:10px; color:#94a3b8; text-align:right; padding-top:6px;'>ANNUNCIATOR STATE: <b style='color:#34d399;'>NORMAL</b> | HORN: <b style='color:{'#ef4444' if not st.session_state.alarm_muted else '#64748b'};'>{'ENABLED' if not st.session_state.alarm_muted else 'SILENCED'}</b></div>", unsafe_allow_html=True)
+
+    st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
+
+    # -----------------------------------------------------------------
     # FAULT INJECTION CONTROL STRIP (ISA-18.2 TEST HARNESS)
     # -----------------------------------------------------------------
     with st.container():
@@ -807,11 +893,6 @@ def render_live_scada_telemetry():
     # HIGH-PERFORMANCE HMI (ISA-101) 6-CARD INSTRUMENT GAUGES
     # -----------------------------------------------------------------
     k1, k2, k3, k4, k5, k6 = st.columns(6)
-    
-    is_lat_alm = predicted_latency >= st.session_state.latency_threshold_ms
-    is_drop_alm = packet_drop >= st.session_state.failover_drop_threshold
-    is_temp_alm = temperature >= st.session_state.throttling_temp_threshold
-    is_buf_alm = buffer_util >= 85.0
 
     k1.html(render_scada_kpi_card("TAG: LAT-RTT-01", "Edge Latency", f"{predicted_latency:.2f}", "ms", "10-45 ms", f"{st.session_state.latency_threshold_ms:.0f} ms", "ALARM" if is_lat_alm else "GOOD", chart_df["Predicted_Latency"].values[-10:], is_lat_alm))
     k2.html(render_scada_kpi_card("TAG: THRU-MB-02", "Ingress Rate", f"{throughput:.1f}", "Mbps", "40-100", "150", "GOOD", chart_df["Throughput"].values[-10:], False))
@@ -871,6 +952,67 @@ def render_live_scada_telemetry():
         st.html(f"""
         <div class="scada-panel" style="padding: 6px; height: 235px; box-sizing: border-box; overflow: hidden;">
             <img src="{cad_uri}" style="width: 100%; height: 223px; display: block; border-radius: 4px;" />
+        </div>
+        """)
+
+    # -----------------------------------------------------------------
+    # MULTI-HORIZON PREDICTIVE FAN & SPECTRAL JITTER FFT SPECTRUM
+    # -----------------------------------------------------------------
+    st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
+    f_col1, f_col2 = st.columns([1.6, 1.4])
+
+    with f_col1:
+        st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>MULTI-HORIZON LOOK-AHEAD FORECAST (±2σ CONFIDENCE FAN)</div>", unsafe_allow_html=True)
+        h5 = predicted_latency + (tp_slope * 0.5) + np.random.normal(0, 0.4)
+        h15 = predicted_latency + (tp_slope * 1.5) + (active_drops * 2.0) + np.random.normal(0, 0.8)
+        h30 = predicted_latency + (tp_slope * 3.0) + (active_drops * 4.5) + np.random.normal(0, 1.2)
+        
+        st.html(f"""
+        <div class="scada-panel" style="padding: 12px 16px; height: 110px; box-sizing: border-box; display: flex; justify-content: space-around; align-items: center;">
+            <div style="text-align: center;">
+                <div style="font-size: 9.5px; color: #64748b; font-family: monospace; font-weight: bold;">HORIZON T+5s</div>
+                <div style="font-size: 16px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: {'#ef4444' if h5>=st.session_state.latency_threshold_ms else '#38bdf8'};">{h5:.1f} ms</div>
+                <div style="font-size: 8.5px; color: #94a3b8; font-family: monospace;">±1.2 ms (95% CI)</div>
+            </div>
+            <div style="border-left: 1px solid #1e293b; height: 70px;"></div>
+            <div style="text-align: center;">
+                <div style="font-size: 9.5px; color: #64748b; font-family: monospace; font-weight: bold;">HORIZON T+15s</div>
+                <div style="font-size: 16px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: {'#ef4444' if h15>=st.session_state.latency_threshold_ms else '#34d399'};">{h15:.1f} ms</div>
+                <div style="font-size: 8.5px; color: #94a3b8; font-family: monospace;">±2.8 ms (95% CI)</div>
+            </div>
+            <div style="border-left: 1px solid #1e293b; height: 70px;"></div>
+            <div style="text-align: center;">
+                <div style="font-size: 9.5px; color: #64748b; font-family: monospace; font-weight: bold;">HORIZON T+30s</div>
+                <div style="font-size: 16px; font-family: 'JetBrains Mono', monospace; font-weight: 800; color: {'#ef4444' if h30>=st.session_state.latency_threshold_ms else '#f59e0b'};">{h30:.1f} ms</div>
+                <div style="font-size: 8.5px; color: #94a3b8; font-family: monospace;">±4.5 ms (95% CI)</div>
+            </div>
+        </div>
+        """)
+
+    with f_col2:
+        st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>REAL-TIME JITTER FFT SPECTRAL HARMONICS (0-50 Hz)</div>", unsafe_allow_html=True)
+        fft_harmonics = [
+            ("1.0 Hz (Baseline)", 12, "#10b981"),
+            ("5.0 Hz (Queue)", 38 if buffer_util>50 else 18, "#38bdf8"),
+            ("10.0 Hz (TSN Gate)", 82 if st.session_state.chaos_mode!='None' else 25, "#ef4444" if st.session_state.chaos_mode!='None' else "#10b981"),
+            ("25.0 Hz (Micro-Burst)", 44 if active_drops>1.0 else 14, "#f59e0b")
+        ]
+        
+        fft_bars = []
+        for name, amp, col in fft_harmonics:
+            fft_bars.append(f"""
+            <div style="display: flex; align-items: center; gap: 8px; font-family: monospace; font-size: 9px; margin-bottom: 3px;">
+                <span style="width: 110px; color: #cbd5e1; white-space: nowrap;">{name}</span>
+                <div style="background: #0b0f17; border-radius: 2px; height: 5px; flex-grow: 1; overflow: hidden;">
+                    <div style="background: {col}; height: 5px; width: {amp}%;"></div>
+                </div>
+                <span style="width: 40px; text-align: right; color: {col}; font-weight: bold;">{amp}%</span>
+            </div>
+            """)
+            
+        st.html(f"""
+        <div class="scada-panel" style="padding: 10px 14px; height: 110px; box-sizing: border-box; overflow: hidden;">
+            {''.join(fft_bars)}
         </div>
         """)
 
@@ -1123,6 +1265,66 @@ def render_fieldbus_topology_cad():
         </div>
         """)
 
+    st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+    st.markdown("##### Multi-Protocol Fieldbus Telemetry & Demux Matrix")
+
+    proto_p1, proto_p2, proto_p3, proto_p4 = st.columns(4)
+    with proto_p1:
+        st.html("""
+        <div class="scada-panel" style="padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: #38bdf8;">MODBUS TCP</span>
+                <span style="font-size: 8px; background: #064e3b; border: 1px solid #059669; color: #34d399; padding: 1px 4px; border-radius: 2px; font-family: monospace;">PORT 502</span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 800; color: #f8fafc;">120.4 <span style="font-size: 9px; color: #64748b;">msg/s</span></div>
+            <div style="font-size: 9px; color: #94a3b8; font-family: monospace; margin-top: 4px; border-top: 1px solid #1e293b; padding-top: 3px;">
+                CRC ERR: <b style="color:#10b981;">0.00%</b> | REG: <b>0x00-0xFF</b>
+            </div>
+        </div>
+        """)
+
+    with proto_p2:
+        st.html("""
+        <div class="scada-panel" style="padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: #38bdf8;">OPC-UA PUBSUB</span>
+                <span style="font-size: 8px; background: #064e3b; border: 1px solid #059669; color: #34d399; padding: 1px 4px; border-radius: 2px; font-family: monospace;">PORT 4840</span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 800; color: #f8fafc;">85.0 <span style="font-size: 9px; color: #64748b;">msg/s</span></div>
+            <div style="font-size: 9px; color: #94a3b8; font-family: monospace; margin-top: 4px; border-top: 1px solid #1e293b; padding-top: 3px;">
+                SECURITY: <b style="color:#38bdf8;">AES256-SHA</b> | NODES: <b>48</b>
+            </div>
+        </div>
+        """)
+
+    with proto_p3:
+        st.html("""
+        <div class="scada-panel" style="padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: #38bdf8;">MQTT SPARKPLUG</span>
+                <span style="font-size: 8px; background: #064e3b; border: 1px solid #059669; color: #34d399; padding: 1px 4px; border-radius: 2px; font-family: monospace;">PORT 1883</span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 800; color: #f8fafc;">210.8 <span style="font-size: 9px; color: #64748b;">msg/s</span></div>
+            <div style="font-size: 9px; color: #94a3b8; font-family: monospace; margin-top: 4px; border-top: 1px solid #1e293b; padding-top: 3px;">
+                QoS: <b style="color:#10b981;">EXACTLY_ONCE</b> | ZLIB: <b>ON</b>
+            </div>
+        </div>
+        """)
+
+    with proto_p4:
+        st.html("""
+        <div class="scada-panel" style="padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; color: #38bdf8;">PROFINET IRT</span>
+                <span style="font-size: 8px; background: #064e3b; border: 1px solid #059669; color: #34d399; padding: 1px 4px; border-radius: 2px; font-family: monospace;">ETHERNET</span>
+            </div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 800; color: #f8fafc;">400.0 <span style="font-size: 9px; color: #64748b;">msg/s</span></div>
+            <div style="font-size: 9px; color: #94a3b8; font-family: monospace; margin-top: 4px; border-top: 1px solid #1e293b; padding-top: 3px;">
+                CYCLE: <b style="color:#34d399;">5.00 ms</b> | JITTER: <b>&lt;10µs</b>
+            </div>
+        </div>
+        """)
+
 # ---------------------------------------------------------------------
 # VIEW 4: EDGE FLEET & PLC NODE ASSET INVENTORY
 # ---------------------------------------------------------------------
@@ -1354,6 +1556,58 @@ def render_qos_policy_shaper():
                 reason="Reset to baseline"
             )
             st.toast("QoS Traffic Discipline Restored to Default.")
+
+    st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+    st.markdown("##### Autonomous Closed-Loop SIL-2 Playbook Matrix")
+
+    pb1, pb2 = st.columns(2)
+    with pb1:
+        st.html("""
+        <div class="scada-panel" style="padding: 12px 14px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #f8fafc;">PLAYBOOK 01: TRAFFIC SHEDDING</span>
+                <span style="background: #064e3b; border: 1px solid #059669; color: #34d399; font-size: 8px; padding: 1px 5px; border-radius: 2px; font-family: monospace;">ARMED</span>
+            </div>
+            <div style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 4px;">
+                TRIGGER: Predicted Latency &ge; Setpoint (60ms) for &ge; 2 cycles.<br>
+                ACTION: Actuate Linux tc TBF queue rate limiting (-18%).
+            </div>
+        </div>
+        <div class="scada-panel" style="padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #f8fafc;">PLAYBOOK 02: THERMAL REGULATOR</span>
+                <span style="background: #064e3b; border: 1px solid #059669; color: #34d399; font-size: 8px; padding: 1px 5px; border-radius: 2px; font-family: monospace;">ARMED</span>
+            </div>
+            <div style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 4px;">
+                TRIGGER: Core Junction Temperature &gt; 68.0°C.<br>
+                ACTION: CPU Frequency Scaling + 1.2ms cycle delay holdoff.
+            </div>
+        </div>
+        """)
+
+    with pb2:
+        st.html("""
+        <div class="scada-panel" style="padding: 12px 14px; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #f8fafc;">PLAYBOOK 03: ZERO-LOSS HA FAILOVER</span>
+                <span style="background: #064e3b; border: 1px solid #059669; color: #34d399; font-size: 8px; padding: 1px 5px; border-radius: 2px; font-family: monospace;">ARMED</span>
+            </div>
+            <div style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 4px;">
+                TRIGGER: Packet Loss &gt; 1.80% or Unresponsive Heartbeat.<br>
+                ACTION: Zero-loss traffic rerouting to Standby Node Delta.
+            </div>
+        </div>
+        <div class="scada-panel" style="padding: 12px 14px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #f8fafc;">PLAYBOOK 04: AUTO SHADOW RETRAINING</span>
+                <span style="background: #064e3b; border: 1px solid #059669; color: #34d399; font-size: 8px; padding: 1px 5px; border-radius: 2px; font-family: monospace;">ARMED</span>
+            </div>
+            <div style="font-size: 10px; color: #94a3b8; font-family: monospace; margin-top: 4px;">
+                TRIGGER: Composite Feature PSI &gt; 0.250.<br>
+                ACTION: Async background XGBoost retraining + weights reload.
+            </div>
+        </div>
+        """)
 
 # ---------------------------------------------------------------------
 # VIEW 7: INCIDENT AUDIT & SEQUENCE-OF-EVENTS (SOE) LOG
