@@ -121,13 +121,17 @@ st.html("""
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* Master Dark Slate Base Viewport */
+/* Master Dark Slate Base Viewport with Subtle Ambient Radial Glow */
 .stApp {
-    background-color: #0b0f17 !important;
+    background-color: #080c14 !important;
     background-image: 
-        linear-gradient(rgba(30, 41, 59, 0.35) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(30, 41, 59, 0.35) 1px, transparent 1px) !important;
-    background-size: 28px 28px !important;
+        radial-gradient(ellipse 75% 45% at 50% -10%, rgba(56, 189, 248, 0.07), transparent 70%),
+        radial-gradient(ellipse 55% 35% at 90% 85%, rgba(99, 102, 241, 0.04), transparent 60%),
+        radial-gradient(ellipse 45% 30% at 10% 45%, rgba(16, 185, 129, 0.035), transparent 60%),
+        linear-gradient(rgba(30, 41, 59, 0.28) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 41, 59, 0.28) 1px, transparent 1px) !important;
+    background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px, 28px 28px !important;
+    background-attachment: fixed !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     color: #cbd5e1 !important;
 }
@@ -152,19 +156,21 @@ code, pre {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* Industrial SCADA Panel Cards with Overflow Hidden Guard */
+/* Industrial SCADA Panel Cards with Subtle Glow and Guard */
 .scada-panel {
-    background: #111827 !important;
-    border: 1px solid #1f2937 !important;
+    background: rgba(17, 24, 39, 0.88) !important;
+    backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(56, 189, 248, 0.12) !important;
     border-radius: 6px !important;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5) !important;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 15px -3px rgba(56, 189, 248, 0.03) !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
     position: relative !important;
-    transition: border-color 0.15s ease !important;
+    transition: all 0.2s ease !important;
 }
 .scada-panel:hover {
-    border-color: #374151 !important;
+    border-color: rgba(56, 189, 248, 0.3) !important;
+    box-shadow: 0 6px 24px -2px rgba(0, 0, 0, 0.6), 0 0 20px -2px rgba(56, 189, 248, 0.08) !important;
 }
 
 /* Custom Table Theme */
@@ -239,44 +245,86 @@ div[data-testid="stTextInput"] input:focus {
 section[data-testid="stSidebar"],
 section[data-testid="stSidebar"] > div,
 section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-    background-color: #090d16 !important;
+    background-color: #070b12 !important;
+    background-image: radial-gradient(ellipse 100% 40% at 50% 0%, rgba(56, 189, 248, 0.05), transparent 80%) !important;
     border-right: 1px solid #1e293b !important;
 }
 div[data-testid="stSidebarContent"] {
     padding-top: 0.8rem !important;
 }
 
-/* Sidebar Nav Radio Options */
-div[data-testid="stRadio"] > div {
-    gap: 3px !important;
+/* Sidebar Nav Radio Options / Perfectly Aligned Tabs */
+div[data-testid="stRadio"] div[role="radiogroup"] {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+    padding: 2px 0 !important;
 }
-div[data-testid="stRadio"] label {
+div[data-testid="stRadio"] div[role="radiogroup"] > label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
     background: #0f172a !important;
     border: 1px solid #1e293b !important;
+    border-left: 3px solid transparent !important;
     border-radius: 4px !important;
     padding: 8px 12px !important;
-    margin-bottom: 2px !important;
+    margin: 0 !important;
     cursor: pointer !important;
-    transition: all 0.15s ease !important;
+    transition: all 0.15s ease-in-out !important;
     width: 100% !important;
+    min-height: 38px !important;
+    box-sizing: border-box !important;
 }
-div[data-testid="stRadio"] label:hover {
-    background: #1e293b !important;
-    border-color: #475569 !important;
+div[data-testid="stRadio"] div[role="radiogroup"] > label:hover {
+    background: #162032 !important;
+    border-color: #334155 !important;
+    border-left-color: #64748b !important;
 }
-div[data-testid="stRadio"] label[data-checked="true"],
-div[data-testid="stRadio"] label:has(input:checked) {
-    background: #1e293b !important;
-    border: 1px solid #3b82f6 !important;
-    border-left: 3px solid #3b82f6 !important;
-}
-div[data-testid="stRadio"] label[data-checked="true"] p,
-div[data-testid="stRadio"] label:has(input:checked) p {
-    color: #f8fafc !important;
-    font-weight: 600 !important;
+div[data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"],
+div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) {
+    background: #131d2e !important;
+    border: 1px solid #2563eb !important;
+    border-left: 3px solid #38bdf8 !important;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.08) !important;
 }
 div[data-testid="stRadio"] div[role="radiogroup"] > label > div:first-child {
     display: none !important;
+}
+div[data-testid="stRadio"] div[role="radiogroup"] > label input[type="radio"] {
+    display: none !important;
+}
+div[data-testid="stRadio"] div[role="radiogroup"] > label div[data-testid="stMarkdownContainer"] {
+    width: 100% !important;
+}
+div[data-testid="stRadio"] div[role="radiogroup"] > label p {
+    font-family: 'JetBrains Mono', -apple-system, sans-serif !important;
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: #94a3b8 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.4 !important;
+    letter-spacing: 0.2px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+div[data-testid="stRadio"] div[role="radiogroup"] > label[data-checked="true"] p,
+div[data-testid="stRadio"] div[role="radiogroup"] > label:has(input:checked) p {
+    color: #38bdf8 !important;
+    font-weight: 600 !important;
+}
+
+/* Safety Interlock Toggles Aligned */
+div[data-testid="stToggle"] {
+    padding: 2px 0 !important;
+}
+div[data-testid="stToggle"] label {
+    font-family: 'JetBrains Mono', sans-serif !important;
+    font-size: 11px !important;
+    color: #cbd5e1 !important;
 }
 
 /* Industrial Action Buttons */
