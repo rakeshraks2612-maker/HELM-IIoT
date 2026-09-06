@@ -1,5 +1,5 @@
 import pytest
-from starlette.testclient import TestClient
+from fastapi.testclient import TestClient
 from config.settings import settings
 from edge_gateway.gateway_service import app as gateway_app
 from ingestion_service.service import app as ingestion_app
