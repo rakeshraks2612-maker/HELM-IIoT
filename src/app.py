@@ -642,23 +642,22 @@ def generate_cad_schematic_data_uri(color_node_a, color_node_b, color_node_d, co
 # ---------------------------------------------------------------------
 # SIDEBAR: INDUSTRIAL CONTROL & SCADA DISPATCHER
 # ---------------------------------------------------------------------
+logo_svg_raw = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>"""
+sidebar_logo_uri = svg_to_data_uri(logo_svg_raw)
+
 with st.sidebar:
-    st.html("""
+    st.html(f"""
     <div style="padding: 6px 0 12px 0; border-bottom: 1px solid #1e293b; margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="background: #1e293b; border: 1px solid #3b82f6; border-radius: 4px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(59,130,246,0.2);">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
-                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                    <polyline points="2 17 12 22 22 17"></polyline>
-                    <polyline points="2 12 12 17 22 12"></polyline>
-                </svg>
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="background: #111827; border: 1.5px solid #38bdf8; border-radius: 5px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px rgba(56,189,248,0.3); flex-shrink: 0;">
+                <img src="{sidebar_logo_uri}" style="width: 20px; height: 20px; display: block;" />
             </div>
             <div>
-                <div style="font-size: 13px; font-weight: 800; color: #f8fafc; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
-                    <span style="color: #38bdf8; font-size: 14px;">⬡</span> HELM-IIoT SCADA
+                <div style="font-size: 13.5px; font-weight: 800; color: #f8fafc; letter-spacing: 0.3px; line-height: 1.2;">
+                    <span style="color: #38bdf8; font-size: 13px;">⬡</span> HELM-IIoT SCADA
                 </div>
-                <div style="font-size: 9px; color: #3b82f6; font-family: 'JetBrains Mono', monospace; font-weight: 700; display: flex; align-items: center; gap: 4px;">
-                    <span style="color: #10b981; font-size: 8px;">◈</span> EDGE CONTROL NODE v4.2.8
+                <div style="font-size: 9px; color: #3b82f6; font-family: 'JetBrains Mono', monospace; font-weight: 700; margin-top: 2px;">
+                    <span style="color: #10b981; font-size: 8px;">◈</span> EDGE CONTROL NODE <span style="background: #1e293b; color: #94a3b8; padding: 1px 4px; border-radius: 2px; font-size: 8px;">v4.2.8</span>
                 </div>
             </div>
         </div>
