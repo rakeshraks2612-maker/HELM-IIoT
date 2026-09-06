@@ -647,16 +647,27 @@ def render_live_operations_hud():
     # Unsupervised Cluster Assignment
     simulated_cluster = 2 if active_drops > 2.5 or throughput < 40 else (1 if active_drops > 1.2 or buffer_util > 75 else 0)
 
-    # Machine Learning Inference Loop
-    input_features = pd.DataFrame([{
-        "throughput_mbps": throughput,
-        "packet_drop_percentage": active_drops,
-        "buffer_utilization_percentage": buffer_util,
-        "node_temperature_celsius": temperature,
-        "dynamic_operational_label": simulated_cluster
-    }])
+    # Calculate real-time temporal and lag features from session history
+    hist_lat = st.session_state.history["Actual_Latency"].tolist() if "history" in st.session_state and len(st.session_state.history) > 0 else [42.0]
+    lag_1 = hist_lat[-1] if len(hist_lat) >= 1 else 42.0
+    lag_2 = hist_lat[-2] if len(hist_lat) >= 2 else lag_1
+    
+    hist_tp = st.session_state.history["Throughput"].tolist() if "history" in st.session_state and len(st.session_state.history) > 0 else [throughput]
+    tp_slope = (throughput - hist_tp[-1]) if len(hist_tp) >= 1 else 0.0
+    buf_peak = max(buffer_util, max(st.session_state.history["Buffer_Util"].tail(5).tolist())) if "history" in st.session_state and len(st.session_state.history) > 0 else buffer_util
 
-    predicted_latency = float(predictive_engine.predict(input_features)[0])
+    # Machine Learning Inference Loop via Microservices Client
+    pred_res = helm_client.predict_latency(
+        throughput=throughput,
+        drop_pct=active_drops,
+        buffer_util=buffer_util,
+        temp=temperature,
+        slope=tp_slope,
+        buffer_peak=buf_peak,
+        lag_1=lag_1,
+        lag_2=lag_2
+    )
+    predicted_latency = float(pred_res["predicted_latency_ms"])
     unmitigated_predicted_latency = predicted_latency
     is_potential_breach = unmitigated_predicted_latency >= st.session_state.latency_threshold_ms
 
@@ -672,14 +683,17 @@ def render_live_operations_hud():
         buffer_util *= 0.70
         simulated_cluster = 0 if active_drops <= 1.2 else 1
         
-        input_features_opt = pd.DataFrame([{
-            "throughput_mbps": throughput,
-            "packet_drop_percentage": active_drops,
-            "buffer_utilization_percentage": buffer_util,
-            "node_temperature_celsius": temperature,
-            "dynamic_operational_label": simulated_cluster
-        }])
-        predicted_latency = float(predictive_engine.predict(input_features_opt)[0])
+        pred_opt = helm_client.predict_latency(
+            throughput=throughput,
+            drop_pct=active_drops,
+            buffer_util=buffer_util,
+            temp=temperature,
+            slope=tp_slope * st.session_state.shedding_factor,
+            buffer_peak=buffer_util,
+            lag_1=lag_1,
+            lag_2=lag_2
+        )
+        predicted_latency = float(pred_opt["predicted_latency_ms"])
         
         if predicted_latency < st.session_state.latency_threshold_ms and is_potential_breach:
             st.session_state.mitigations_successful += 1

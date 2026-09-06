@@ -20,8 +20,23 @@ def train_predictive_engine(csv_path="labeled_telemetry.csv"):
     base_latency = 40 + (df["packet_drop_percentage"] * 35) + (df["dynamic_operational_label"].abs() * 12)
     df["network_latency_ms"] = base_latency + np.random.normal(0, 2, size=len(df))
     
-    # Constructing algorithm data paths for the ML model pipeline
-    features = ["throughput_mbps", "packet_drop_percentage", "buffer_utilization_percentage", "node_temperature_celsius", "dynamic_operational_label"]
+    # Constructing temporal and physics features for the ML model pipeline
+    df["lag_latency_1"] = df["network_latency_ms"].shift(1).bfill()
+    df["lag_latency_2"] = df["network_latency_ms"].shift(2).bfill()
+    df["throughput_slope"] = df["throughput_mbps"].diff().fillna(0.0)
+    df["buffer_peak"] = df["buffer_utilization_percentage"].rolling(10, min_periods=1).max()
+
+    features = [
+        "throughput_mbps",
+        "packet_drop_percentage",
+        "buffer_utilization_percentage",
+        "node_temperature_celsius",
+        "dynamic_operational_label",
+        "lag_latency_1",
+        "lag_latency_2",
+        "throughput_slope",
+        "buffer_peak"
+    ]
     X = df[features]
     y = df["network_latency_ms"]
     
