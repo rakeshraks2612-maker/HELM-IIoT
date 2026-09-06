@@ -13,8 +13,9 @@ logger = structlog.get_logger("helm-event-bus")
 class TelemetryEventBus:
     """Async streaming event bus with in-memory buffer and pluggable stream connector."""
 
-    def __init__(self, max_buffer_size: int = 5000):
+    def __init__(self, max_buffer_size: int = 5000, persistence_file: str = "telemetry_stream.jsonl"):
         self.max_buffer_size = max_buffer_size
+        self.persistence_file = persistence_file
         self._subscribers: List[Callable[[CanonicalTelemetryFrame], Any]] = []
         self._queue: asyncio.Queue = asyncio.Queue(maxsize=max_buffer_size)
         self._history: List[CanonicalTelemetryFrame] = []
@@ -25,12 +26,19 @@ class TelemetryEventBus:
         self._subscribers.append(callback)
 
     async def publish(self, frame: CanonicalTelemetryFrame):
-        """Pushes a canonical frame onto the ingestion queue with backpressure handling."""
+        """Pushes a canonical frame onto the ingestion queue with backpressure handling and persistence."""
         try:
             self._queue.put_nowait(frame)
             self._history.append(frame)
             if len(self._history) > self.max_buffer_size:
                 self._history.pop(0)
+
+            # Append to persistent JSONL stream file
+            try:
+                with open(self.persistence_file, "a", encoding="utf-8") as f:
+                    f.write(frame.model_dump_json() + "\n")
+            except Exception:
+                pass
         except asyncio.QueueFull:
             logger.warn("event_bus_backpressure_drop", device_id=frame.device_id)
 

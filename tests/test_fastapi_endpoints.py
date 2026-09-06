@@ -87,10 +87,16 @@ def test_ml_service_endpoints(auth_headers):
     data = res_pred.json()
     assert "predicted_latency_ms" in data
     assert "cluster_regime" in data
+    assert "shap_attributions" in data
+    assert isinstance(data["shap_attributions"], dict)
 
     # Drift status
     res_drift = client.get("/drift/status", headers=auth_headers)
     assert res_drift.status_code == 200
+
+    # Retrain with admin role
+    res_retrain = client.post("/retrain", headers={"X-API-Key": settings.admin_api_key})
+    assert res_retrain.status_code == 200
 
 
 def test_control_service_endpoints(auth_headers):

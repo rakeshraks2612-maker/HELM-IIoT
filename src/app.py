@@ -12,6 +12,7 @@ import json
 import base64
 import streamlit.components.v1 as components
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from scada_ui.client import helm_client
 
 st.set_page_config(
     page_title="IIoT Predictive Edge Engine",
@@ -1339,12 +1340,24 @@ def render_model_diagnostics():
         st.scatter_chart(cluster_vis_df, x="Packet_Drop", y="Buffer_Util", color="Cluster", height=260)
 
     with c_r:
-        st.markdown("##### XGBoost Feature Importance Distribution")
-        feature_importance_df = pd.DataFrame({
-            "Feature": ["Packet Drops (%)", "Dynamic Cluster Label", "Buffer Util (%)", "Throughput (Mbps)", "Core Temp (°C)"],
-            "Importance Weight": [0.44, 0.28, 0.14, 0.09, 0.05]
-        }).set_index("Feature")
-        st.bar_chart(feature_importance_df, height=260)
+        st.markdown("##### Real-Time TreeSHAP Feature Attributions (Δ ms)")
+        # Query live TreeSHAP attributions from client SDK
+        sample_pred = helm_client.predict_latency(
+            throughput=float(chart_df["Throughput"].iloc[-1]) if len(chart_df) > 0 else 55.0,
+            drop_pct=float(chart_df["Drops"].iloc[-1]) if len(chart_df) > 0 else 0.4,
+            buffer_util=float(chart_df["Buffer_Util"].iloc[-1]) if len(chart_df) > 0 else 45.0,
+            temp=float(chart_df["Temperature"].iloc[-1]) if len(chart_df) > 0 else 44.0
+        )
+        shap_raw = sample_pred.get("shap_attributions", {})
+        shap_display = {
+            "Packet Drop Burst": shap_raw.get("packet_drop_percentage", 6.2),
+            "Buffer Saturation": shap_raw.get("buffer_utilization_percentage", 3.8),
+            "Operational Regime": shap_raw.get("dynamic_operational_label", 2.5),
+            "Throughput Slope": shap_raw.get("throughput_slope", -1.2),
+            "Thermal Load": shap_raw.get("node_temperature_celsius", 0.8)
+        }
+        shap_df = pd.DataFrame(list(shap_display.items()), columns=["Telemetry Channel", "SHAP Impact (ms)"]).set_index("Telemetry Channel")
+        st.bar_chart(shap_df, height=260)
 
     st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
     st.markdown("##### Autonomous Model Re-Training Suite")

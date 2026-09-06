@@ -22,11 +22,28 @@ app = FastAPI(
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
-def verify_api_key(api_key: str = Security(api_key_header)):
-    if settings.enable_auth:
-        if not api_key or api_key != settings.api_key:
-            raise HTTPException(status_code=403, detail="Forbidden: Invalid or missing API key")
-    return api_key
+def verify_api_key(api_key: str = Security(api_key_header)) -> str:
+    """Validates key and resolves Role: viewer, operator, admin."""
+    if not settings.enable_auth:
+        return "admin"
+    if not api_key:
+        raise HTTPException(status_code=403, detail="Forbidden: Missing API key")
+    
+    if api_key == settings.admin_api_key or api_key == settings.api_key:
+        return "admin"
+    elif api_key == settings.operator_api_key:
+        return "operator"
+    else:
+        raise HTTPException(status_code=403, detail="Forbidden: Invalid credentials")
+
+
+def require_role(required_role: str):
+    def role_checker(role: str = Depends(verify_api_key)):
+        hierarchy = {"viewer": 1, "operator": 2, "admin": 3}
+        if hierarchy.get(role, 0) < hierarchy.get(required_role, 1):
+            raise HTTPException(status_code=403, detail=f"Insufficient privileges: requires {required_role} role")
+        return role
+    return role_checker
 
 
 @app.get("/health")

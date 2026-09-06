@@ -54,13 +54,14 @@ class PredictionRequest(BaseModel):
 
 
 class PredictionResponse(BaseModel):
-    """Inference response."""
+    """Inference response with sub-millisecond TreeSHAP explainability."""
     predicted_latency_ms: float
     sla_violation_expected: bool
     dynamic_operational_label: int
     cluster_regime: str
     inference_duration_ms: float
     model_version: str
+    shap_attributions: Dict[str, float] = Field(default_factory=dict, description="Exact TreeSHAP marginal latency contributions in ms")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 

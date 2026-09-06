@@ -61,7 +61,7 @@ class HelmServicesClient:
             lag_latency_2=lag_2
         )
 
-        predicted_ms = model_container.predict(req)
+        predicted_ms, shap_dict = model_container.predict_with_shap(req)
         is_sla_violated = predicted_ms >= settings.sla_latency_threshold_ms
 
         return {
@@ -69,6 +69,7 @@ class HelmServicesClient:
             "sla_violation_expected": is_sla_violated,
             "dynamic_operational_label": cluster_id,
             "cluster_regime": regime_name,
+            "shap_attributions": shap_dict,
             "model_version": model_container.model_version
         }
 
