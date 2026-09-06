@@ -646,15 +646,19 @@ with st.sidebar:
     st.html("""
     <div style="padding: 6px 0 12px 0; border-bottom: 1px solid #1e293b; margin-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+            <div style="background: #1e293b; border: 1px solid #3b82f6; border-radius: 4px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(59,130,246,0.2);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+                    <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                    <polyline points="2 17 12 22 22 17"></polyline>
+                    <polyline points="2 12 12 17 22 12"></polyline>
+                </svg>
             </div>
             <div>
-                <div style="font-size: 13px; font-weight: 800; color: #f8fafc; letter-spacing: 0.3px;">
-                    HELM-IIoT SCADA
+                <div style="font-size: 13px; font-weight: 800; color: #f8fafc; letter-spacing: 0.3px; display: flex; align-items: center; gap: 5px;">
+                    <span style="color: #38bdf8; font-size: 14px;">⬡</span> HELM-IIoT SCADA
                 </div>
-                <div style="font-size: 9px; color: #3b82f6; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
-                    EDGE CONTROL NODE v4.2.8
+                <div style="font-size: 9px; color: #3b82f6; font-family: 'JetBrains Mono', monospace; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+                    <span style="color: #10b981; font-size: 8px;">◈</span> EDGE CONTROL NODE v4.2.8
                 </div>
             </div>
         </div>
