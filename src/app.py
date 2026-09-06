@@ -2,12 +2,19 @@
 # MODULE 5: IIOT PREDICTIVE EDGE CONTROL CENTER | ENTERPRISE HUD V5.1
 # HYBRID CLUSTERING & SUPERVISED TREE BOOSTING ORCHESTRATOR
 # =====================================================================
+import os
+import sys
+
+# Ensure root workspace directory is in sys.path when running from src/
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
+
 import streamlit as st
 import pandas as pd
 import numpy as np
 import xgboost as xgb
 import time
-import os
 import json
 import base64
 import streamlit.components.v1 as components
