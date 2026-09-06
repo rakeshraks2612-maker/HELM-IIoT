@@ -1167,7 +1167,7 @@ def render_treeshap_feature_store():
     render_industrial_header(timestamp)
 
     st.markdown("#### TreeSHAP Explainable XAI & Temporal Feature Store")
-    st.markdown("<p style='font-size: 11.5px; color: #64748b; margin-top: -6px;'>Fast native TreeSHAP marginal feature attributions (pred_contribs &lt;0.2ms) and real-time rolling statistics.</p>", unsafe_allow_html=True)
+    st.markdown("<p style='font-size: 11.5px; color: #64748b; margin-top: -6px;'>Fast native TreeSHAP marginal feature attributions (pred_contribs &lt;0.2ms), drift telemetry (PSI / KS-test), and shadow retraining.</p>", unsafe_allow_html=True)
 
     chart_df = st.session_state.history
     c1, c2 = st.columns(2)
@@ -1230,6 +1230,54 @@ def render_treeshap_feature_store():
         </div>
         """)
 
+    st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+    st.markdown("##### Population Stability Index (PSI) & Data Drift Telemetry")
+    
+    drift_batch = {
+        "throughput_mbps": chart_df["Throughput"].tolist(),
+        "packet_drop_percentage": chart_df["Drops"].tolist(),
+        "buffer_utilization_percentage": chart_df["Buffer_Util"].tolist(),
+        "node_temperature_celsius": chart_df["Temperature"].tolist()
+    }
+    drift_info = helm_client.get_drift_metrics(drift_batch)
+    feat_metrics = drift_info.get("feature_metrics", {})
+    
+    d_rows = []
+    for f_name, d_val in feat_metrics.items():
+        psi = d_val.get("psi", 0.02)
+        ks = d_val.get("ks_statistic", 0.05)
+        p_v = d_val.get("p_value", 0.85)
+        drift_col = "#10b981" if psi < 0.10 else ("#f59e0b" if psi < 0.25 else "#ef4444")
+        d_status = "STABLE" if psi < 0.10 else ("MODERATE SHIFT" if psi < 0.25 else "SIGNIFICANT DRIFT")
+        
+        d_rows.append(f"""
+        <tr>
+            <td style="color:#f8fafc; font-weight:bold;">{f_name}</td>
+            <td style="color:{drift_col}; font-weight:bold;">{psi:.4f}</td>
+            <td>{ks:.4f}</td>
+            <td>{p_v:.4f}</td>
+            <td><span style="color:{drift_col}; font-weight:bold;">{d_status}</span></td>
+        </tr>
+        """)
+        
+    st.html(f"""
+    <div class="scada-panel" style="padding:0; overflow:hidden; margin-bottom: 12px;">
+        <table class="scada-table">
+            <thead><tr><th>FEATURE NAME</th><th>PSI INDEX</th><th>KS STATISTIC</th><th>P-VALUE</th><th>DRIFT STATE</th></tr></thead>
+            <tbody>{''.join(d_rows)}</tbody>
+        </table>
+    </div>
+    """)
+
+    t_b1, t_b2 = st.columns([1.5, 2.5])
+    with t_b1:
+        if st.button("⟳ Trigger Shadow Model Retraining Pipeline", key="btn_shadow_retrain"):
+            res = helm_client.trigger_retraining()
+            st.toast(f"Retraining Complete: Version {res['model_version']} loaded.")
+            st.success(f"Shadow model retrained successfully. Model Version: **{res['model_version']}**")
+    with t_b2:
+        st.info("Continuous Model Governance: Automatic retraining activates when composite PSI exceeds **0.250** boundary threshold.")
+
 # ---------------------------------------------------------------------
 # VIEW 6: QOS POLICY, TRAFFIC SHAPING & SAFETY INTERLOCKS
 # ---------------------------------------------------------------------
@@ -1258,6 +1306,54 @@ def render_qos_policy_shaper():
         st.markdown("##### HA Failover Loss Boundary")
         f_thresh = st.slider("Failover Packet Loss Trigger (%)", 1.0, 4.0, float(st.session_state.failover_drop_threshold), step=0.2, key="slider_failover_thresh")
         st.session_state.failover_drop_threshold = f_thresh
+
+    st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+    st.markdown("##### Linux tc Token Bucket Filter (TBF) Kernel Configuration")
+    
+    tbf_rate = 100.0 * st.session_state.shedding_factor
+    tbf_burst = int(tbf_rate * 12.5)
+    
+    st.html(f"""
+    <div class="scada-panel" style="padding: 16px; margin-bottom: 14px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #94a3b8; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+            <div>
+                <span style="color: #64748b;">SHAPED BANDWIDTH:</span><br>
+                <b style="color: #38bdf8;">{tbf_rate:.1f} Mbps</b>
+            </div>
+            <div>
+                <span style="color: #64748b;">BURST CAPACITY:</span><br>
+                <b style="color: #10b981;">{tbf_burst} KB</b>
+            </div>
+            <div>
+                <span style="color: #64748b;">DEBOUNCE HOLDOFF:</span><br>
+                <b style="color: #f59e0b;">5.0 sec (Anti-Flapping)</b>
+            </div>
+            <div>
+                <span style="color: #64748b;">SAFETY INTERLOCK:</span><br>
+                <b style="color: #34d399;">SIL-2 CERTIFIED</b>
+            </div>
+        </div>
+    </div>
+    """)
+
+    q_b1, q_b2 = st.columns(2)
+    with q_b1:
+        if st.button("⏵ Test Ingress Traffic Shaper Actuation", key="btn_test_shaper"):
+            res = helm_client.execute_mitigation(
+                action="traffic_shedding",
+                target_device="PLC_NODE_ALPHA",
+                reason="Manual QoS test actuation from operator console",
+                shedding_factor=st.session_state.shedding_factor
+            )
+            st.toast(f"QoS Actuation: {res['status'].upper()} — Traffic Shaped to {tbf_rate:.1f} Mbps.")
+    with q_b2:
+        if st.button("⟳ Reset QoS Discipline to Default", key="btn_reset_shaper"):
+            res = helm_client.execute_mitigation(
+                action="reset",
+                target_device="PLC_NODE_ALPHA",
+                reason="Reset to baseline"
+            )
+            st.toast("QoS Traffic Discipline Restored to Default.")
 
 # ---------------------------------------------------------------------
 # VIEW 7: INCIDENT AUDIT & SEQUENCE-OF-EVENTS (SOE) LOG

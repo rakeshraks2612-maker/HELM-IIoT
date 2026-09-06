@@ -105,6 +105,25 @@ class HelmServicesClient:
         safety_guard.record_mitigation_action()
         return {"status": "success", "action": action, "result": result}
 
+    def get_drift_metrics(self, batch_data: Optional[Dict[str, List[float]]] = None) -> Dict[str, Any]:
+        """Evaluates Population Stability Index (PSI) and KS-test drift metrics."""
+        from ml_inference_service.drift_detector import drift_detector
+        import numpy as np
+        sample_batch = batch_data or {
+            "throughput_mbps": list(np.random.normal(51.0, 9.0, 50)),
+            "packet_drop_percentage": list(np.random.exponential(0.4, 50)),
+            "buffer_utilization_percentage": list(np.random.uniform(25.0, 70.0, 50)),
+            "node_temperature_celsius": list(np.random.normal(43.0, 2.5, 50))
+        }
+        return drift_detector.evaluate_drift(sample_batch)
+
+    def trigger_retraining(self) -> Dict[str, Any]:
+        """Triggers local time-series training pipeline and reloads model weights."""
+        from ml_inference_service.train_pipeline import train_time_series_model
+        metrics = train_time_series_model()
+        model_container.load_model()
+        return {"status": "success", "metrics": metrics, "model_version": model_container.model_version}
+
 
 # Global client instance
 helm_client = HelmServicesClient()
