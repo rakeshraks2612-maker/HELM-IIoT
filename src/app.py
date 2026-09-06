@@ -531,43 +531,111 @@ def generate_oscilloscope_data_uri(history_df, ucl=60.0, uwl=45.0):
     </svg>"""
     return svg_to_data_uri(svg_scope)
 
-# High-Contrast Industrial CAD Schematic Data URI
-def generate_cad_schematic_data_uri(color_node_a, color_node_b, color_node_d, color_gateway, failover_engaged):
+# Dynamic Animated Industrial CAD Schematic Data URI (With 60fps Client-Side Motion)
+def generate_cad_schematic_data_uri(color_node_a, color_node_b, color_node_d, color_gateway, failover_engaged, tp=85.0, drops=0.35, temp=48.0, buff=42.0, pred_lat=42.0):
     width, height = 360, 225
+    flow_speed_a = "1.1s" if tp < 100 else "0.55s"
+    flow_speed_gw = "0.85s" if tp < 100 else "0.42s"
+    
+    particle_a_col = "#38bdf8" if temp < 60 else "#f59e0b"
+    particle_b_col = "#ef4444" if drops > 1.0 else "#34d399"
+    particle_gw_col = "#ef4444" if pred_lat >= 60 else "#38bdf8"
+    
     cad_svg_raw = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="background-color: #0b0f17; border-radius: 4px; display: block;">
-        <!-- Bus Flow Conduits -->
-        <line x1="65" y1="35" x2="180" y2="110" stroke="{color_node_a}" stroke-width="2" stroke-dasharray="4,4" />
-        <line x1="65" y1="80" x2="180" y2="110" stroke="{"#1e293b" if failover_engaged else color_node_b}" stroke-width="2" stroke-dasharray="4,4" />
-        <line x1="65" y1="135" x2="180" y2="110" stroke="#10b981" stroke-width="2" stroke-dasharray="4,4" />
-        <line x1="65" y1="185" x2="180" y2="110" stroke="{color_node_d if failover_engaged else '#1e293b'}" stroke-width="2" stroke-dasharray="4,4" />
-        <line x1="180" y1="110" x2="290" y2="110" stroke="{color_gateway}" stroke-width="2.5" stroke-dasharray="5,5" />
+        <defs>
+            <style>
+                @keyframes conduit-flow {{
+                    from {{ stroke-dashoffset: 20; }}
+                    to {{ stroke-dashoffset: 0; }}
+                }}
+                @keyframes beacon-ring {{
+                    0% {{ r: 14px; opacity: 0.8; stroke-width: 1.5; }}
+                    100% {{ r: 24px; opacity: 0; stroke-width: 0.5; }}
+                }}
+                .flow-a {{ stroke-dasharray: 4, 4; animation: conduit-flow {flow_speed_a} linear infinite; }}
+                .flow-b {{ stroke-dasharray: 4, 4; animation: conduit-flow {"2.5s" if failover_engaged else "1.3s"} linear infinite; }}
+                .flow-c {{ stroke-dasharray: 4, 4; animation: conduit-flow 1.5s linear infinite; }}
+                .flow-d {{ stroke-dasharray: 4, 4; animation: conduit-flow {"0.8s" if failover_engaged else "4.0s"} linear infinite; }}
+                .flow-gw {{ stroke-dasharray: 5, 5; animation: conduit-flow {flow_speed_gw} linear infinite; }}
+                .pulse-beacon {{ animation: beacon-ring 1.6s ease-out infinite; transform-origin: 180px 110px; }}
+            </style>
+        </defs>
 
-        <!-- Nodes -->
-        <rect x="15" y="24" width="50" height="24" rx="3" fill="#111827" stroke="{color_node_a}" stroke-width="1.8" />
-        <text x="40" y="39" fill="#f8fafc" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-A</text>
+        <!-- Subtle CAD Engineering Grid -->
+        <line x1="0" y1="36" x2="360" y2="36" stroke="#131d2e" stroke-width="0.5" stroke-dasharray="2,4" />
+        <line x1="0" y1="81" x2="360" y2="81" stroke="#131d2e" stroke-width="0.5" stroke-dasharray="2,4" />
+        <line x1="0" y1="136" x2="360" y2="136" stroke="#131d2e" stroke-width="0.5" stroke-dasharray="2,4" />
+        <line x1="0" y1="186" x2="360" y2="186" stroke="#131d2e" stroke-width="0.5" stroke-dasharray="2,4" />
 
-        <rect x="15" y="69" width="50" height="24" rx="3" fill="#111827" stroke="{color_node_b}" stroke-width="1.8" />
-        <text x="40" y="84" fill="#f8fafc" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-B</text>
+        <!-- Animated Conduits -->
+        <path d="M 68,36 L 155,100" fill="none" stroke="{color_node_a}" stroke-width="2.2" class="flow-a" />
+        <path d="M 68,81 L 155,105" fill="none" stroke="{"#334155" if failover_engaged else color_node_b}" stroke-width="2.0" class="flow-b" />
+        <path d="M 68,136 L 155,115" fill="none" stroke="#10b981" stroke-width="2.0" class="flow-c" />
+        <path d="M 68,186 L 155,120" fill="none" stroke="{color_node_d if failover_engaged else '#1e293b'}" stroke-width="2.2" class="flow-d" />
+        <path d="M 205,110 L 268,110" fill="none" stroke="{color_gateway}" stroke-width="2.8" class="flow-gw" />
 
-        <rect x="15" y="124" width="50" height="24" rx="3" fill="#111827" stroke="#10b981" stroke-width="1.8" />
-        <text x="40" y="139" fill="#f8fafc" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">CACHE</text>
+        <!-- Live Moving Packet Particles -->
+        <circle r="3" fill="{particle_a_col}">
+            <animateMotion dur="{flow_speed_a}" repeatCount="indefinite" path="M 68,36 L 155,100" />
+        </circle>
+        
+        {f'''<circle r="3" fill="{particle_b_col}">
+            <animateMotion dur="1.3s" repeatCount="indefinite" path="M 68,81 L 155,105" />
+        </circle>''' if not failover_engaged else ''}
 
-        <rect x="15" y="174" width="50" height="24" rx="3" fill="#111827" stroke="{color_node_d}" stroke-width="1.8" stroke-dasharray="{ 'none' if failover_engaged else '2,2' }" />
-        <text x="40" y="189" fill="#94a3b8" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">HA-STBY</text>
+        <circle r="2.6" fill="#10b981">
+            <animateMotion dur="1.5s" repeatCount="indefinite" path="M 68,136 L 155,115" />
+        </circle>
 
-        <!-- Gateway Hub -->
+        {f'''<circle r="3.2" fill="#f59e0b">
+            <animateMotion dur="0.8s" repeatCount="indefinite" path="M 68,186 L 155,120" />
+        </circle>''' if failover_engaged else ''}
+
+        <circle r="3.5" fill="{particle_gw_col}">
+            <animateMotion dur="{flow_speed_gw}" repeatCount="indefinite" path="M 205,110 L 268,110" />
+        </circle>
+
+        <!-- Node Alpha (PLC-A) -->
+        <rect x="12" y="24" width="56" height="25" rx="3" fill="#111827" stroke="{color_node_a}" stroke-width="1.8" />
+        <circle cx="20" cy="36" r="2.5" fill="{color_node_a}" />
+        <text x="39" y="35" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-A</text>
+        <text x="39" y="44" fill="#94a3b8" font-size="7" font-family="monospace" text-anchor="middle">{temp:.0f}°C</text>
+
+        <!-- Node Beta (PLC-B) -->
+        <rect x="12" y="69" width="56" height="25" rx="3" fill="#111827" stroke="{"#334155" if failover_engaged else color_node_b}" stroke-width="1.8" />
+        <circle cx="20" cy="81" r="2.5" fill="{"#475569" if failover_engaged else color_node_b}" />
+        <text x="39" y="80" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-B</text>
+        <text x="39" y="89" fill="#94a3b8" font-size="7" font-family="monospace" text-anchor="middle">{drops:.1f}% err</text>
+
+        <!-- Cache Node Gamma -->
+        <rect x="12" y="124" width="56" height="25" rx="3" fill="#111827" stroke="#10b981" stroke-width="1.8" />
+        <circle cx="20" cy="136" r="2.5" fill="#10b981" />
+        <text x="39" y="135" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">CACHE</text>
+        <text x="39" y="144" fill="#10b981" font-size="7" font-family="monospace" text-anchor="middle">SYNC</text>
+
+        <!-- Hot Standby Delta (HA-STBY) -->
+        <rect x="12" y="174" width="56" height="25" rx="3" fill="#111827" stroke="{color_node_d if failover_engaged else '#334155'}" stroke-width="1.8" />
+        <circle cx="20" cy="186" r="2.5" fill="{"#f59e0b" if failover_engaged else '#475569'}" />
+        <text x="39" y="185" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">HA-STBY</text>
+        <text x="39" y="194" fill="{"#f59e0b" if failover_engaged else '#64748b'}" font-size="7" font-family="monospace" text-anchor="middle">{"ACTIVE" if failover_engaged else "STBY"}</text>
+
+        <!-- Central TSN Gateway Hub (With Pulse Beacon) -->
+        <circle cx="180" cy="110" r="18" fill="none" stroke="{color_gateway}" class="pulse-beacon" />
         <rect x="155" y="88" width="50" height="44" rx="4" fill="#111827" stroke="{color_gateway}" stroke-width="2.2" />
-        <text x="180" y="114" fill="#f8fafc" font-size="10" font-family="monospace" text-anchor="middle" font-weight="bold">TSN-GW</text>
+        <text x="180" y="105" fill="#f8fafc" font-size="9.5" font-family="monospace" text-anchor="middle" font-weight="bold">TSN-GW</text>
+        <text x="180" y="116" fill="#38bdf8" font-size="7.5" font-family="monospace" text-anchor="middle" font-weight="bold">{tp:.0f} Mbps</text>
+        <text x="180" y="125" fill="#94a3b8" font-size="7" font-family="monospace" text-anchor="middle">Q:{buff:.0f}%</text>
 
-        <!-- SCADA Cloud Bridge -->
-        <rect x="270" y="94" width="75" height="32" rx="3" fill="#111827" stroke="#38bdf8" stroke-width="1.8" />
-        <text x="307" y="114" fill="#38bdf8" font-size="9.5" font-family="monospace" text-anchor="middle" font-weight="bold">SCADA NOC</text>
+        <!-- SCADA Cloud NOC Bridge -->
+        <rect x="268" y="93" width="80" height="34" rx="3" fill="#111827" stroke="#38bdf8" stroke-width="1.8" />
+        <text x="308" y="108" fill="#38bdf8" font-size="9.5" font-family="monospace" text-anchor="middle" font-weight="bold">SCADA NOC</text>
+        <text x="308" y="120" fill="#94a3b8" font-size="7.5" font-family="monospace" text-anchor="middle">RTT: {pred_lat:.1f}ms</text>
 
-        <!-- Protocol Labels -->
-        <text x="75" y="28" fill="#94a3b8" font-size="8" font-family="monospace">Modbus :502</text>
-        <text x="75" y="73" fill="#94a3b8" font-size="8" font-family="monospace">OPC-UA :4840</text>
-        <text x="75" y="128" fill="#94a3b8" font-size="8" font-family="monospace">MQTT :1883</text>
-        <text x="75" y="178" fill="#94a3b8" font-size="8" font-family="monospace">CoAP :5683</text>
+        <!-- Protocol & Active Stream Metrics -->
+        <text x="75" y="27" fill="#64748b" font-size="7.5" font-family="monospace">Modbus :502</text>
+        <text x="75" y="72" fill="#64748b" font-size="7.5" font-family="monospace">OPC-UA :4840</text>
+        <text x="75" y="127" fill="#64748b" font-size="7.5" font-family="monospace">MQTT :1883</text>
+        <text x="75" y="177" fill="#64748b" font-size="7.5" font-family="monospace">CoAP/TSN</text>
     </svg>"""
     return svg_to_data_uri(cad_svg_raw)
 
@@ -948,7 +1016,10 @@ def render_live_scada_telemetry():
         if mitigation_active == "Active":
             color_gateway = "#38bdf8"
 
-        cad_uri = generate_cad_schematic_data_uri(color_node_a, color_node_b, color_node_d, color_gateway, failover_engaged)
+        cad_uri = generate_cad_schematic_data_uri(
+            color_node_a, color_node_b, color_node_d, color_gateway, failover_engaged,
+            tp=throughput, drops=packet_drop, temp=temperature, buff=buffer_util, pred_lat=predicted_latency
+        )
         st.html(f"""
         <div class="scada-panel" style="padding: 6px; height: 235px; box-sizing: border-box; overflow: hidden;">
             <img src="{cad_uri}" style="width: 100%; height: 223px; display: block; border-radius: 4px;" />
