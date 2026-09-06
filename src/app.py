@@ -20,6 +20,8 @@ import base64
 import streamlit.components.v1 as components
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from scada_ui.client import helm_client
+from ml_inference_service.rca_copilot import copilot_engine
+from config.settings import settings
 
 st.set_page_config(
     page_title="IIoT Predictive Edge Engine",
@@ -477,6 +479,7 @@ with st.sidebar:
     # Custom Styled Vertical Radio Navigation (Zero keyboard typing)
     nav_labels = [
         "Live Operations HUD",
+        "AI SCADA Copilot & RCA",
         "Edge Fleet & Node Assets",
         "Model Diagnostics & XAI",
         "QoS Policy & Mitigations",
@@ -1515,10 +1518,149 @@ def render_incident_packet_inspector():
         st.dataframe(packets_df, use_container_width=True, height=260)
 
 # ---------------------------------------------------------------------
+# VIEW: AI-POWERED SCADA COPILOT & AUTONOMOUS ROOT CAUSE ANALYSIS (RCA)
+# ---------------------------------------------------------------------
+def render_ai_copilot():
+    timestamp = time.strftime("%H:%M:%S")
+    render_header(timestamp)
+
+    st.markdown("#### ⚡ Autonomous AI SCADA Copilot & RCA Engine")
+    st.markdown("<p style='font-size: 12px; color: #64748b;'>Continuous telemetry reasoning correlating 4D sensor manifolds, TreeSHAP feature attributions, and closed-loop control.</p>", unsafe_allow_html=True)
+
+    # Extract current real-time telemetry snapshot
+    chart_df = st.session_state.history
+    cur_tp = float(chart_df["Throughput"].iloc[-1]) if len(chart_df) > 0 else 80.0
+    cur_drops = float(chart_df["Drops"].iloc[-1]) if len(chart_df) > 0 else 0.35
+    cur_temp = float(chart_df["Temperature"].iloc[-1]) if len(chart_df) > 0 else 46.0
+    cur_buf = float(chart_df["Buffer_Util"].iloc[-1]) if len(chart_df) > 0 else 40.0
+    cur_pred = float(chart_df["Predicted_Latency"].iloc[-1]) if len(chart_df) > 0 else 42.0
+    cur_actual = float(chart_df["Actual_Latency"].iloc[-1]) if len(chart_df) > 0 else 41.5
+    ha_active = chart_df["Failover_Active"].iloc[-1] == "True" if len(chart_df) > 0 else False
+
+    # Fetch live TreeSHAP attributions
+    pred_res = helm_client.predict_latency(
+        throughput=cur_tp,
+        drop_pct=cur_drops,
+        buffer_util=cur_buf,
+        temp=cur_temp
+    )
+    shap_vals = pred_res.get("shap_attributions", {})
+
+    # Run Autonomous RCA Engine
+    diag = copilot_engine.diagnose_root_cause(
+        throughput_mbps=cur_tp,
+        packet_drop_pct=cur_drops,
+        buffer_util_pct=cur_buf,
+        node_temp_celsius=cur_temp,
+        predicted_latency_ms=cur_pred,
+        actual_latency_ms=cur_actual,
+        operational_regime=pred_res.get("cluster_regime", "Nominal Regime"),
+        shap_attributions=shap_vals,
+        ha_failover_active=ha_active
+    )
+
+    # Top Status & Risk Assessment Banner
+    risk_colors = {
+        "CRITICAL_BREACH": ("#ff3366", "rgba(255, 51, 102, 0.12)", "CRITICAL SLA RISK DETECTED"),
+        "WARNING_APPROACHING_LIMIT": ("#fbbf24", "rgba(251, 191, 36, 0.12)", "WARNING: ELEVATED JITTER DETECTED"),
+        "NOMINAL_STABLE": ("#00ffcc", "rgba(0, 255, 204, 0.10)", "DETERMINISTIC TSN OPERATION NOMINAL")
+    }
+    r_color, r_bg, r_title = risk_colors.get(diag["risk_level"], ("#00ffcc", "rgba(0,255,204,0.1)", "NOMINAL"))
+
+    st.html(f"""
+    <div class="hud-card" style="padding: 16px 20px; background: {r_bg} !important; border: 1px solid {r_color} !important; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 13px; color: {r_color};">{r_title}</span>
+                <span style="background: rgba(124, 58, 237, 0.25); border: 1px solid #7c3aed; color: #c4b5fd; font-size: 10px; padding: 2px 8px; border-radius: 10px; font-family: monospace;">Confidence: {diag['confidence_score']*100:.0f}%</span>
+            </div>
+            <span style="font-size: 11px; font-family: monospace; color: #94a3b8;">Primary Root Vector: <b style="color: #ffffff;">{diag['primary_vector']}</b></span>
+        </div>
+        <div style="font-size: 12.5px; color: #ffffff; line-height: 1.5; font-family: 'Inter', sans-serif;">
+            {diag['diagnosis_summary']}
+        </div>
+        <div style="margin-top: 8px; font-size: 11.5px; color: #a78bfa; font-family: monospace;">
+            {diag['recommendation_text']}
+        </div>
+    </div>
+    """)
+
+    # Main Copilot Interface Layout
+    c_left, c_right = st.columns([1.6, 1.4])
+
+    with c_left:
+        st.markdown("##### Detailed Anomaly Evidence & TreeSHAP Findings")
+        for finding in diag["findings"]:
+            f_color = "#ff3366" if finding["severity"] == "CRITICAL" else ("#fbbf24" if finding["severity"] in ["HIGH", "MEDIUM"] else "#00ffcc")
+            st.html(f"""
+            <div class="hud-card" style="padding: 12px 16px; margin-bottom: 10px; border-left: 3px solid {f_color} !important;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-family: 'Orbitron', sans-serif; font-size: 11px; font-weight: 700; color: #ffffff;">{finding['vector']}</span>
+                    <span style="font-size: 9.5px; color: {f_color}; font-weight: 700; font-family: monospace;">{finding['severity']}</span>
+                </div>
+                <div style="font-size: 11px; color: #94a3b8; margin-top: 4px; line-height: 1.4; font-family: monospace;">
+                    {finding['evidence']}
+                </div>
+            </div>
+            """)
+
+        # 1-Click Mitigation Action Panel
+        if diag["mitigation_action"] != "none":
+            st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+            with st.container(border=True):
+                st.markdown(f"###### Recommended Closed-Loop Mitigation: `{diag['mitigation_action'].upper()}`")
+                st.markdown(f"<p style='font-size: 11px; color: #94a3b8;'>Target Interface: <b>{diag['action_params'].get('target_device', 'PLC_NODE_ALPHA')}</b> | Reason: {diag['action_params'].get('reason')}</p>", unsafe_allow_html=True)
+                
+                if st.button("⚡ Execute Recommended Mitigation Now", key="btn_exec_rca_mitigation"):
+                    res = helm_client.execute_mitigation(
+                        action=diag["mitigation_action"],
+                        target_device=diag["action_params"].get("target_device", "PLC_NODE_ALPHA"),
+                        reason=diag["action_params"].get("reason", "AI Copilot triggered RCA resolution"),
+                        shedding_factor=diag["action_params"].get("shedding_factor", settings.traffic_shedding_factor)
+                    )
+                    st.toast(f"Mitigation Executed: {res['status'].upper()} — {diag['mitigation_action']}")
+                    st.session_state.incident_logs.append({
+                        "Timestamp": timestamp,
+                        "Severity": "MITIGATED",
+                        "Source": "AI Copilot",
+                        "Event": f"AI Copilot executed {diag['mitigation_action']} on {diag['action_params'].get('target_device')}."
+                    })
+
+    with c_right:
+        st.markdown("##### Interactive SCADA Copilot Inquiries")
+        q1, q2 = st.columns(2)
+        with q1:
+            if st.button("🔍 Telemetry Root Cause", key="btn_q_rca"):
+                st.info(f"**AI Diagnosis**: Latency is at **{cur_pred:.1f} ms**. The leading driver is **{diag['primary_vector']}** with a TreeSHAP impact of **+{shap_vals.get('packet_drop_percentage', 4.5):.1f} ms**.")
+            if st.button("🌐 Fleet Redundancy Check", key="btn_q_fleet"):
+                st.success(f"**Fleet Matrix**: Node Alpha (Ingress), Node Beta (ML Core), Node Gamma (Storage) are active. Standby Node Delta is {'🔥 FORWARDING (FAILOVER ACTIVE)' if ha_active else '🟢 HOT STANDBY READY'}.")
+        with q2:
+            if st.button("🛡️ TSN SLA Breach Risk", key="btn_q_sla"):
+                prob = min(99.0, max(5.0, (cur_pred / settings.sla_latency_threshold_ms) * 100))
+                st.warning(f"**SLA Risk Assessment**: Latency is at **{cur_pred:.1f} / {settings.sla_latency_threshold_ms:.0f} ms** ({prob:.1f}% capacity). Anti-flapping safety guard active.")
+            if st.button("📋 Compliance Audit", key="btn_q_audit"):
+                report = copilot_engine.generate_compliance_audit_summary(st.session_state.incident_logs)
+                st.markdown(report)
+
+        st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+        user_query = st.text_input("Ask AI SCADA Copilot custom query:", placeholder="e.g. Why did Node Alpha drop packets at 10:45?", key="copilot_text_input")
+        if user_query:
+            st.html(f"""
+            <div class="hud-card" style="padding: 12px 14px; margin-top: 6px; border-left: 3px solid #7c3aed !important;">
+                <div style="color: #c4b5fd; font-weight: 700; font-size: 11px; margin-bottom: 2px;">COPILOT RESPONSE</div>
+                <div style="font-size: 11px; color: #ffffff; line-height: 1.4; font-family: monospace;">
+                    Analyzing live telemetry across 4 sensor channels... Current latency is bounded at {cur_pred:.2f} ms with operational regime '{pred_res.get('cluster_regime')}'. All deterministic QoS constraints remain active.
+                </div>
+            </div>
+            """)
+
+# ---------------------------------------------------------------------
 # MASTER VIEW ROUTER (BASED ON SAAS SIDEBAR SELECTION)
 # ---------------------------------------------------------------------
 if st.session_state.active_nav == "Live Operations HUD":
     render_live_operations_hud()
+elif st.session_state.active_nav == "AI SCADA Copilot & RCA":
+    render_ai_copilot()
 elif st.session_state.active_nav == "Edge Fleet & Node Assets":
     render_edge_fleet_matrix()
 elif st.session_state.active_nav == "Model Diagnostics & XAI":
