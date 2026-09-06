@@ -73,6 +73,15 @@ class HelmConfig(BaseSettings):
     modbus_server_port: int = Field(default=5020)
     opcua_server_url: str = Field(default="opc.tcp://127.0.0.1:4840/freeopcua/server/")
 
+    # Hardware-in-the-Loop (HIL) Bridge Configuration
+    hil_enabled: bool = Field(default=True, description="Enables physical HIL connector socket bridge")
+    hil_mode: str = Field(default="virtual_s7", description="ethernet, serial_rtu, virtual_s7, rpi_gpio")
+    hil_target_ip: str = Field(default="192.168.10.14")
+    hil_target_port: int = Field(default=102, description="S7comm port 102 / Modbus 502")
+    hil_serial_port: str = Field(default="/dev/ttyUSB0")
+    hil_baudrate: int = Field(default=115200)
+    hil_poll_interval_ms: int = Field(default=10, ge=1, le=1000)
+
 
 # Global singleton settings instance
 settings = HelmConfig()

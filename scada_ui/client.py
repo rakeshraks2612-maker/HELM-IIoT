@@ -124,6 +124,34 @@ class HelmServicesClient:
         model_container.load_model()
         return {"status": "success", "metrics": metrics, "model_version": model_container.model_version}
 
+    def get_hil_status(self) -> Dict[str, Any]:
+        """Fetches live Hardware-in-the-Loop bridge status."""
+        from edge_gateway.hil_connector import hil_bridge
+        return hil_bridge.get_status()
+
+    def poll_hil_hardware(self) -> Dict[str, Any]:
+        """Polls connected physical PLC hardware or emulator."""
+        from edge_gateway.hil_connector import hil_bridge
+        return hil_bridge.poll_hardware()
+
+    def connect_hil(self, mode: str = "virtual_s7", target_ip: str = "192.168.10.14", port: int = 102) -> Dict[str, Any]:
+        """Connects HIL bridge to physical PLC or emulator."""
+        from edge_gateway.hil_connector import hil_bridge
+        hil_bridge.mode = mode
+        hil_bridge.target_ip = target_ip
+        hil_bridge.target_port = port
+        return hil_bridge.connect()
+
+    def disconnect_hil(self) -> Dict[str, Any]:
+        """Disconnects HIL hardware bridge."""
+        from edge_gateway.hil_connector import hil_bridge
+        return hil_bridge.disconnect()
+
+    def get_hil_frames(self) -> List[Dict[str, Any]]:
+        """Returns raw Hex frames from HIL protocol analyzer buffer."""
+        from edge_gateway.hil_connector import hil_bridge
+        return hil_bridge.frame_buffer
+
 
 # Global client instance
 helm_client = HelmServicesClient()

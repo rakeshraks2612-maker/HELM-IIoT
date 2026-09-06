@@ -1361,6 +1361,84 @@ def render_edge_fleet_assets():
             st.session_state.failover_events += 1
             st.toast("Traffic successfully rerouted to Standby Node Delta.")
 
+    st.markdown("<div style='margin-top: 14px;'></div>", unsafe_allow_html=True)
+    st.markdown("##### Hardware-in-the-Loop (HIL) Physical PLC Socket & Hardware Interface")
+
+    hil_status = helm_client.get_hil_status()
+    hil_telem_pack = helm_client.poll_hil_hardware()
+    hil_telem = hil_telem_pack.get("telemetry", {})
+    hil_frames = helm_client.get_hil_frames()
+
+    h_c1, h_c2 = st.columns([1.2, 1.8])
+    with h_c1:
+        st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; margin-bottom:4px;'>HARDWARE INTERFACE CONFIGURATION</div>", unsafe_allow_html=True)
+        hil_mode_sel = st.selectbox(
+            "Hardware Interface Protocol",
+            ["Siemens S7comm (ISO-on-TCP :102)", "Modbus RTU (Serial RS-485)", "Raspberry Pi 5 TSN Direct", "Virtual S7-1500 PLC Emulator"],
+            index=3,
+            key="hil_mode_sel"
+        )
+        target_ip_val = st.text_input("Hardware IP Address / Device URI", value="192.168.10.14", key="hil_ip_input")
+        
+        btn_hil_conn, btn_hil_disc = st.columns(2)
+        with btn_hil_conn:
+            if st.button("⏵ Connect HIL", key="btn_hil_connect"):
+                m_code = "ethernet" if "S7comm" in hil_mode_sel else ("serial_rtu" if "Serial" in hil_mode_sel else "virtual_s7")
+                helm_client.connect_hil(mode=m_code, target_ip=target_ip_val, port=102)
+                st.toast(f"HIL Bridge Connected: {hil_mode_sel} at {target_ip_val}")
+                st.rerun()
+        with btn_hil_disc:
+            if st.button("✕ Disconnect", key="btn_hil_disconnect"):
+                helm_client.disconnect_hil()
+                st.toast("HIL Hardware Bridge Disconnected.")
+                st.rerun()
+
+        st.html(f"""
+        <div class="scada-panel" style="padding: 10px 12px; margin-top: 8px;">
+            <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-family: monospace; margin-bottom: 2px;">
+                <span style="color: #64748b;">HIL STATUS:</span>
+                <b style="color: {'#34d399' if hil_status['is_connected'] else '#ef4444'};">{'LINK ESTABLISHED' if hil_status['is_connected'] else 'DISCONNECTED'}</b>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-family: monospace; margin-bottom: 2px;">
+                <span style="color: #64748b;">HARDWARE RTT:</span>
+                <b style="color: #38bdf8;">{hil_status['last_rtt_ms']:.2f} ms</b>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-family: monospace; margin-bottom: 2px;">
+                <span style="color: #64748b;">PLC SCAN CYCLE:</span>
+                <b style="color: #10b981;">{hil_telem.get('plc_cycle_time_us', 9800)/1000.0:.2f} ms</b>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 9.5px; font-family: monospace;">
+                <span style="color: #64748b;">GPIO BITMASK:</span>
+                <b style="color: #f59e0b;">{hil_telem.get('gpio_port_mask', '0x5F')}</b>
+            </div>
+        </div>
+        """)
+
+    with h_c2:
+        st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; margin-bottom:4px;'>REAL-TIME HIL PACKET ANALYZER & RAW HEX LOG</div>", unsafe_allow_html=True)
+        
+        frame_rows = []
+        for f in hil_frames[-6:][::-1]:
+            dir_col = "#38bdf8" if f["dir"] == "TX" else "#34d399"
+            frame_rows.append(f"""
+            <tr>
+                <td style="color: #64748b;">{f['time']}</td>
+                <td style="color: {dir_col}; font-weight: bold;">{f['dir']}</td>
+                <td style="color: #f8fafc;">{f['type']}</td>
+                <td style="color: #94a3b8;">{f['bytes']}B</td>
+                <td style="font-family: monospace; color: #cbd5e1; font-size: 8.5px;">{f['hex']}</td>
+            </tr>
+            """)
+            
+        st.html(f"""
+        <div class="scada-panel" style="padding:0; overflow:hidden; height: 180px;">
+            <table class="scada-table">
+                <thead><tr><th>TIME</th><th>DIR</th><th>FRAME TYPE</th><th>LEN</th><th>RAW HEX PAYLOAD</th></tr></thead>
+                <tbody>{''.join(frame_rows)}</tbody>
+            </table>
+        </div>
+        """)
+
 # ---------------------------------------------------------------------
 # VIEW 5: TREESHAP XAI & TEMPORAL FEATURE STORE
 # ---------------------------------------------------------------------
