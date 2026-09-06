@@ -142,13 +142,15 @@ code, pre {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* Industrial SCADA Panel Cards */
+/* Industrial SCADA Panel Cards with Overflow Hidden Guard */
 .scada-panel {
     background: #111827 !important;
     border: 1px solid #1f2937 !important;
     border-radius: 6px !important;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5) !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
+    position: relative !important;
     transition: border-color 0.15s ease !important;
 }
 .scada-panel:hover {
@@ -334,7 +336,7 @@ div.block-container {
 def svg_to_data_uri(svg_string):
     return "data:image/svg+xml;base64," + base64.b64encode(svg_string.strip().encode("utf-8")).decode("utf-8")
 
-def generate_sparkline_svg(values, stroke_color="#10b981", height=24, width=110):
+def generate_sparkline_svg(values, stroke_color="#10b981", height=20, width=50):
     if len(values) < 2:
         return ""
     min_v, max_v = min(values), max(values)
@@ -347,12 +349,12 @@ def generate_sparkline_svg(values, stroke_color="#10b981", height=24, width=110)
         points.append(f"{x:.1f},{y:.1f}")
         
     path_d = "M " + " L ".join(points)
-    svg_raw = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="display:block;">
+    svg_raw = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="display:block; overflow:hidden;">
         <path d="{path_d}" fill="none" stroke="{stroke_color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
     </svg>"""
     return svg_to_data_uri(svg_raw)
 
-# Clean High Performance HMI KPI Card
+# Clean High Performance HMI KPI Card (With strict overflow guard)
 def render_scada_kpi_card(tag_id, label, value, unit, nominal_range, limit_val, quality="GOOD", spark_values=None, alarm_active=False):
     status_bg = "#7f1d1d" if alarm_active else "#064e3b"
     status_border = "#dc2626" if alarm_active else "#059669"
@@ -360,43 +362,43 @@ def render_scada_kpi_card(tag_id, label, value, unit, nominal_range, limit_val, 
     val_color = "#ef4444" if alarm_active else "#f8fafc"
     stroke_col = "#ef4444" if alarm_active else "#10b981"
     
-    spark_uri = generate_sparkline_svg(spark_values if spark_values is not None else [1, 1], stroke_color=stroke_col)
+    spark_uri = generate_sparkline_svg(spark_values if spark_values is not None else [1, 1], stroke_color=stroke_col, height=20, width=50)
     
     return f"""
-    <div class="scada-panel" style="padding: 12px 14px; min-height: 125px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div class="scada-panel" style="padding: 10px 12px; height: 122px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #64748b; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 90px;">
                 {tag_id}
             </span>
-            <span style="background: {status_bg}; border: 1px solid {status_border}; color: {status_text}; font-size: 8.5px; padding: 1px 6px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
+            <span style="background: {status_bg}; border: 1px solid {status_border}; color: {status_text}; font-size: 8px; padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-weight: 700; flex-shrink: 0;">
                 {quality}
             </span>
         </div>
         
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px;">
-            <div>
-                <div style="font-size: 11px; font-weight: 500; color: #94a3b8; margin-bottom: 2px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin: 2px 0;">
+            <div style="overflow: hidden; max-width: 85px;">
+                <div style="font-size: 10.5px; font-weight: 500; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                     {label}
                 </div>
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800; color: {val_color}; line-height: 1.0;">
-                    {value} <span style="font-size: 11px; font-weight: 500; color: #64748b;">{unit}</span>
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 19px; font-weight: 800; color: {val_color}; line-height: 1.1; white-space: nowrap;">
+                    {value} <span style="font-size: 10px; font-weight: 500; color: #64748b;">{unit}</span>
                 </div>
             </div>
-            <div style="flex-shrink: 0;">
-                <img src="{spark_uri}" style="width: 100px; height: 24px; display: block;" />
+            <div style="width: 50px; height: 20px; flex-shrink: 0; overflow: hidden;">
+                <img src="{spark_uri}" style="width: 50px; height: 20px; display: block;" />
             </div>
         </div>
 
-        <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #64748b; border-top: 1px solid #1a2234; padding-top: 6px; margin-top: 6px; display: flex; justify-content: space-between;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 8.5px; color: #64748b; border-top: 1px solid #1a2234; padding-top: 4px; display: flex; justify-content: space-between; white-space: nowrap;">
             <span>NOM: <b style="color: #94a3b8;">{nominal_range}</b></span>
-            <span>LIMIT: <b style="color: #f59e0b;">{limit_val}</b></span>
+            <span>LIM: <b style="color: #f59e0b;">{limit_val}</b></span>
         </div>
     </div>
     """
 
-# 100% Dark SVG Dual-Trace Real-Time Oscilloscope
-def render_oscilloscope_svg(history_df, ucl=60.0, uwl=45.0):
-    width, height = 580, 210
+# 100% Dark SVG Dual-Trace Real-Time Oscilloscope Data URI
+def generate_oscilloscope_data_uri(history_df, ucl=60.0, uwl=45.0):
+    width, height = 620, 225
     pad_left, pad_right, pad_top, pad_bottom = 35, 15, 20, 25
     plot_w = width - pad_left - pad_right
     plot_h = height - pad_top - pad_bottom
@@ -405,14 +407,12 @@ def render_oscilloscope_svg(history_df, ucl=60.0, uwl=45.0):
     min_lat = 0.0
     lat_range = max_lat - min_lat
     
-    # Generate points for Predicted Latency and Actual Latency
     pred_pts = []
     act_pts = []
     n_pts = len(history_df)
     
     for i in range(n_pts):
         x = pad_left + (i / max(1, n_pts - 1)) * plot_w
-        
         y_pred = pad_top + plot_h - ((history_df["Predicted_Latency"].iloc[i] - min_lat) / lat_range) * plot_h
         pred_pts.append(f"{x:.1f},{y_pred:.1f}")
         
@@ -422,11 +422,9 @@ def render_oscilloscope_svg(history_df, ucl=60.0, uwl=45.0):
     pred_path = "M " + " L ".join(pred_pts)
     act_path = "M " + " L ".join(act_pts)
     
-    # Limit lines
     y_ucl = pad_top + plot_h - ((ucl - min_lat) / lat_range) * plot_h
     y_uwl = pad_top + plot_h - ((uwl - min_lat) / lat_range) * plot_h
     
-    # Grid lines (every 20ms)
     grid_lines = []
     for g_val in [20, 40, 60, 80]:
         if g_val < max_lat:
@@ -437,47 +435,83 @@ def render_oscilloscope_svg(history_df, ucl=60.0, uwl=45.0):
     cur_pred = history_df["Predicted_Latency"].iloc[-1]
     cur_act = history_df["Actual_Latency"].iloc[-1]
     
-    svg_scope = f"""
-    <div class="scada-panel" style="padding: 10px; height: 235px; box-sizing: border-box;">
-        <svg width="100%" height="215" viewBox="0 0 {width} {height}" style="background-color: #0b0f17; border-radius: 4px; display: block;">
-            <!-- Grid Background Lines -->
-            {' '.join(grid_lines)}
-            
-            <!-- Axis lines -->
-            <line x1="{pad_left}" y1="{pad_top}" x2="{pad_left}" y2="{pad_top + plot_h}" stroke="#334155" stroke-width="1.5" />
-            <line x1="{pad_left}" y1="{pad_top + plot_h}" x2="{width - pad_right}" y2="{pad_top + plot_h}" stroke="#334155" stroke-width="1.5" />
-            
-            <!-- Warning Limit (UWL 45 ms) -->
-            <line x1="{pad_left}" y1="{y_uwl:.1f}" x2="{width - pad_right}" y2="{y_uwl:.1f}" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,4" />
-            <text x="{width - pad_right - 4}" y="{y_uwl - 3:.1f}" fill="#f59e0b" font-size="8" font-family="monospace" text-anchor="end" font-weight="bold">UWL {uwl:.0f}ms</text>
+    svg_scope = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="background-color: #0b0f17; border-radius: 4px; display: block;">
+        <!-- Grid Background Lines -->
+        {' '.join(grid_lines)}
+        
+        <!-- Axis lines -->
+        <line x1="{pad_left}" y1="{pad_top}" x2="{pad_left}" y2="{pad_top + plot_h}" stroke="#334155" stroke-width="1.5" />
+        <line x1="{pad_left}" y1="{pad_top + plot_h}" x2="{width - pad_right}" y2="{pad_top + plot_h}" stroke="#334155" stroke-width="1.5" />
+        
+        <!-- Warning Limit (UWL 45 ms) -->
+        <line x1="{pad_left}" y1="{y_uwl:.1f}" x2="{width - pad_right}" y2="{y_uwl:.1f}" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,4" />
+        <text x="{width - pad_right - 4}" y="{y_uwl - 3:.1f}" fill="#f59e0b" font-size="8" font-family="monospace" text-anchor="end" font-weight="bold">UWL {uwl:.0f}ms</text>
 
-            <!-- Control Limit (UCL 60 ms) -->
-            <line x1="{pad_left}" y1="{y_ucl:.1f}" x2="{width - pad_right}" y2="{y_ucl:.1f}" stroke="#ef4444" stroke-width="1.4" stroke-dasharray="4,4" />
-            <text x="{width - pad_right - 4}" y="{y_ucl - 3:.1f}" fill="#ef4444" font-size="8" font-family="monospace" text-anchor="end" font-weight="bold">UCL {ucl:.0f}ms</text>
+        <!-- Control Limit (UCL 60 ms) -->
+        <line x1="{pad_left}" y1="{y_ucl:.1f}" x2="{width - pad_right}" y2="{y_ucl:.1f}" stroke="#ef4444" stroke-width="1.4" stroke-dasharray="4,4" />
+        <text x="{width - pad_right - 4}" y="{y_ucl - 3:.1f}" fill="#ef4444" font-size="8" font-family="monospace" text-anchor="end" font-weight="bold">UCL {ucl:.0f}ms</text>
 
-            <!-- Trace 1: Predicted Latency (Cyan / Blue) -->
-            <path d="{pred_path}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        <!-- Trace 1: Predicted Latency (Cyan / Blue) -->
+        <path d="{pred_path}" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
 
-            <!-- Trace 2: Actual Latency (Green) -->
-            <path d="{act_path}" fill="none" stroke="#10b981" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+        <!-- Trace 2: Actual Latency (Green) -->
+        <path d="{act_path}" fill="none" stroke="#10b981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
 
-            <!-- Scope Header Legend -->
-            <rect x="{pad_left + 10}" y="6" width="310" height="18" rx="2" fill="#111827" stroke="#1e293b" />
-            <circle cx="{pad_left + 20}" cy="15" r="3" fill="#38bdf8" />
-            <text x="{pad_left + 28}" y="18" fill="#e2e8f0" font-size="8.5" font-family="monospace">PRED: <tspan fill="#38bdf8" font-weight="bold">{cur_pred:.2f} ms</tspan></text>
+        <!-- Scope Header Legend -->
+        <rect x="{pad_left + 10}" y="6" width="310" height="18" rx="2" fill="#111827" stroke="#1e293b" />
+        <circle cx="{pad_left + 20}" cy="15" r="3" fill="#38bdf8" />
+        <text x="{pad_left + 28}" y="18" fill="#e2e8f0" font-size="8.5" font-family="monospace">PRED: <tspan fill="#38bdf8" font-weight="bold">{cur_pred:.2f} ms</tspan></text>
 
-            <circle cx="{pad_left + 115}" cy="15" r="3" fill="#10b981" />
-            <text x="{pad_left + 123}" y="18" fill="#e2e8f0" font-size="8.5" font-family="monospace">ACTUAL: <tspan fill="#10b981" font-weight="bold">{cur_act:.2f} ms</tspan></text>
+        <circle cx="{pad_left + 115}" cy="15" r="3" fill="#10b981" />
+        <text x="{pad_left + 123}" y="18" fill="#e2e8f0" font-size="8.5" font-family="monospace">ACTUAL: <tspan fill="#10b981" font-weight="bold">{cur_act:.2f} ms</tspan></text>
 
-            <line x1="{pad_left + 215}" y1="15" x2="{pad_left + 225}" y2="15" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="2,2" />
-            <text x="{pad_left + 230}" y="18" fill="#fca5a5" font-size="8.5" font-family="monospace">UCL: {ucl:.0f}ms</text>
+        <line x1="{pad_left + 215}" y1="15" x2="{pad_left + 225}" y2="15" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="2,2" />
+        <text x="{pad_left + 230}" y="18" fill="#fca5a5" font-size="8.5" font-family="monospace">UCL: {ucl:.0f}ms</text>
 
-            <!-- Bottom X-Axis Label -->
-            <text x="{width / 2}" y="{height - 6}" fill="#64748b" font-size="8.5" font-family="monospace" text-anchor="middle">REAL-TIME SAMPLING WINDOW (t-30s ... t0)</text>
-        </svg>
-    </div>
-    """
-    return svg_scope
+        <!-- Bottom X-Axis Label -->
+        <text x="{width / 2}" y="{height - 6}" fill="#64748b" font-size="8.5" font-family="monospace" text-anchor="middle">REAL-TIME TELEMETRY TRACE (30s RECENT WINDOW)</text>
+    </svg>"""
+    return svg_to_data_uri(svg_scope)
+
+# High-Contrast Industrial CAD Schematic Data URI
+def generate_cad_schematic_data_uri(color_node_a, color_node_b, color_node_d, color_gateway, failover_engaged):
+    width, height = 360, 225
+    cad_svg_raw = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="background-color: #0b0f17; border-radius: 4px; display: block;">
+        <!-- Bus Flow Conduits -->
+        <line x1="65" y1="35" x2="180" y2="110" stroke="{color_node_a}" stroke-width="2" stroke-dasharray="4,4" />
+        <line x1="65" y1="80" x2="180" y2="110" stroke="{"#1e293b" if failover_engaged else color_node_b}" stroke-width="2" stroke-dasharray="4,4" />
+        <line x1="65" y1="135" x2="180" y2="110" stroke="#10b981" stroke-width="2" stroke-dasharray="4,4" />
+        <line x1="65" y1="185" x2="180" y2="110" stroke="{color_node_d if failover_engaged else '#1e293b'}" stroke-width="2" stroke-dasharray="4,4" />
+        <line x1="180" y1="110" x2="290" y2="110" stroke="{color_gateway}" stroke-width="2.5" stroke-dasharray="5,5" />
+
+        <!-- Nodes -->
+        <rect x="15" y="24" width="50" height="24" rx="3" fill="#111827" stroke="{color_node_a}" stroke-width="1.8" />
+        <text x="40" y="39" fill="#f8fafc" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-A</text>
+
+        <rect x="15" y="69" width="50" height="24" rx="3" fill="#111827" stroke="{color_node_b}" stroke-width="1.8" />
+        <text x="40" y="84" fill="#f8fafc" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-B</text>
+
+        <rect x="15" y="124" width="50" height="24" rx="3" fill="#111827" stroke="#10b981" stroke-width="1.8" />
+        <text x="40" y="139" fill="#f8fafc" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">CACHE</text>
+
+        <rect x="15" y="174" width="50" height="24" rx="3" fill="#111827" stroke="{color_node_d}" stroke-width="1.8" stroke-dasharray="{ 'none' if failover_engaged else '2,2' }" />
+        <text x="40" y="189" fill="#94a3b8" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">HA-STBY</text>
+
+        <!-- Gateway Hub -->
+        <rect x="155" y="88" width="50" height="44" rx="4" fill="#111827" stroke="{color_gateway}" stroke-width="2.2" />
+        <text x="180" y="114" fill="#f8fafc" font-size="10" font-family="monospace" text-anchor="middle" font-weight="bold">TSN-GW</text>
+
+        <!-- SCADA Cloud Bridge -->
+        <rect x="270" y="94" width="75" height="32" rx="3" fill="#111827" stroke="#38bdf8" stroke-width="1.8" />
+        <text x="307" y="114" fill="#38bdf8" font-size="9.5" font-family="monospace" text-anchor="middle" font-weight="bold">SCADA NOC</text>
+
+        <!-- Protocol Labels -->
+        <text x="75" y="28" fill="#94a3b8" font-size="8" font-family="monospace">Modbus :502</text>
+        <text x="75" y="73" fill="#94a3b8" font-size="8" font-family="monospace">OPC-UA :4840</text>
+        <text x="75" y="128" fill="#94a3b8" font-size="8" font-family="monospace">MQTT :1883</text>
+        <text x="75" y="178" fill="#94a3b8" font-size="8" font-family="monospace">CoAP :5683</text>
+    </svg>"""
+    return svg_to_data_uri(cad_svg_raw)
 
 # ---------------------------------------------------------------------
 # SIDEBAR: INDUSTRIAL CONTROL & SCADA DISPATCHER
@@ -781,28 +815,28 @@ def render_live_scada_telemetry():
     is_buf_alm = buffer_util >= 85.0
 
     k1.html(render_scada_kpi_card("TAG: LAT-RTT-01", "Edge Latency", f"{predicted_latency:.2f}", "ms", "10-45 ms", f"{st.session_state.latency_threshold_ms:.0f} ms", "ALARM" if is_lat_alm else "GOOD", chart_df["Predicted_Latency"].values[-10:], is_lat_alm))
-    k2.html(render_scada_kpi_card("TAG: THRU-MB-02", "Ingress Bandwidth", f"{throughput:.1f}", "Mbps", "40-100 Mbps", "150 Mbps", "GOOD", chart_df["Throughput"].values[-10:], False))
-    k3.html(render_scada_kpi_card("TAG: DROP-ERR-03", "Packet Loss Rate", f"{packet_drop:.2f}", "%", "0.0-1.0%", f"{st.session_state.failover_drop_threshold:.1f}%", "ALARM" if is_drop_alm else "GOOD", chart_df["Drops"].values[-10:], is_drop_alm))
-    k4.html(render_scada_kpi_card("TAG: BUFF-Q-04", "TSN Queue Depth", f"{buffer_util:.1f}", "%", "10-60%", "85.0%", "ALARM" if is_buf_alm else "GOOD", chart_df["Buffer_Util"].values[-10:], is_buf_alm))
-    k5.html(render_scada_kpi_card("TAG: TEMP-JC-05", "Die Junction Temp", f"{temperature:.1f}", "°C", "35-60 °C", f"{st.session_state.throttling_temp_threshold:.0f} °C", "ALARM" if is_temp_alm else "GOOD", chart_df["Temperature"].values[-10:], is_temp_alm))
+    k2.html(render_scada_kpi_card("TAG: THRU-MB-02", "Ingress Rate", f"{throughput:.1f}", "Mbps", "40-100", "150", "GOOD", chart_df["Throughput"].values[-10:], False))
+    k3.html(render_scada_kpi_card("TAG: DROP-ERR-03", "Packet Loss", f"{packet_drop:.2f}", "%", "0.0-1.0", f"{st.session_state.failover_drop_threshold:.1f}", "ALARM" if is_drop_alm else "GOOD", chart_df["Drops"].values[-10:], is_drop_alm))
+    k4.html(render_scada_kpi_card("TAG: BUFF-Q-04", "TSN Queue", f"{buffer_util:.1f}", "%", "10-60", "85.0", "ALARM" if is_buf_alm else "GOOD", chart_df["Buffer_Util"].values[-10:], is_buf_alm))
+    k5.html(render_scada_kpi_card("TAG: TEMP-JC-05", "Junction Temp", f"{temperature:.1f}", "°C", "35-60", f"{st.session_state.throttling_temp_threshold:.0f}", "ALARM" if is_temp_alm else "GOOD", chart_df["Temperature"].values[-10:], is_temp_alm))
     
     active_controller_str = "NODE_DELTA (HA)" if failover_engaged else "NODE_ALPHA (PRI)"
     k6.html(f"""
-    <div class="scada-panel" style="padding: 12px 14px; min-height: 125px; display: flex; flex-direction: column; justify-content: space-between;">
+    <div class="scada-panel" style="padding: 10px 12px; height: 122px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: #64748b; font-weight: 700;">TAG: PLC-STATUS-06</span>
-            <span style="background: {'#78350f' if failover_engaged else '#064e3b'}; border: 1px solid {'#d97706' if failover_engaged else '#059669'}; color: {'#fcd34d' if failover_engaged else '#6ee7b7'}; font-size: 8.5px; padding: 1px 6px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
-                {'HA_ACTIVE' if failover_engaged else 'PRIMARY'}
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #64748b; font-weight: 700;">TAG: PLC-06</span>
+            <span style="background: {'#78350f' if failover_engaged else '#064e3b'}; border: 1px solid {'#d97706' if failover_engaged else '#059669'}; color: {'#fcd34d' if failover_engaged else '#6ee7b7'}; font-size: 8px; padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
+                {'HA_ACT' if failover_engaged else 'PRIMARY'}
             </span>
         </div>
         <div>
-            <div style="font-size: 11px; font-weight: 500; color: #94a3b8; margin-bottom: 2px;">Active Controller</div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 800; color: {'#f59e0b' if failover_engaged else '#34d399'};">
+            <div style="font-size: 10.5px; font-weight: 500; color: #94a3b8;">Active Controller</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 13.5px; font-weight: 800; color: {'#f59e0b' if failover_engaged else '#34d399'}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                 {active_controller_str}
             </div>
         </div>
-        <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #64748b; border-top: 1px solid #1a2234; padding-top: 6px; margin-top: 6px; display: flex; justify-content: space-between;">
-            <span>HEARTBEAT: <b style="color: #34d399;">10ms CYCLIC</b></span>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 8.5px; color: #64748b; border-top: 1px solid #1a2234; padding-top: 4px; display: flex; justify-content: space-between; white-space: nowrap;">
+            <span>SCAN: <b style="color: #34d399;">10ms</b></span>
             <span>SYNC: <b style="color: #38bdf8;">LOCK 0x00</b></span>
         </div>
     </div>
@@ -811,13 +845,18 @@ def render_live_scada_telemetry():
     st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------------------
-    # 100% DARK OSCILLOSCOPE & P&ID CAD SCHEMATIC
+    # 100% DARK OSCILLOSCOPE & P&ID CAD SCHEMATIC (BASE64 URI EMBEDDED)
     # -----------------------------------------------------------------
     main_col_l, main_col_r = st.columns([2.0, 1.2])
 
     with main_col_l:
         st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>REAL-TIME DUAL-TRACE FIELDBUS OSCILLOSCOPE</div>", unsafe_allow_html=True)
-        st.html(render_oscilloscope_svg(chart_df, ucl=st.session_state.latency_threshold_ms, uwl=st.session_state.warning_threshold_ms))
+        scope_uri = generate_oscilloscope_data_uri(chart_df, ucl=st.session_state.latency_threshold_ms, uwl=st.session_state.warning_threshold_ms)
+        st.html(f"""
+        <div class="scada-panel" style="padding: 6px; height: 235px; box-sizing: border-box; overflow: hidden;">
+            <img src="{scope_uri}" style="width: 100%; height: 223px; display: block; border-radius: 4px;" />
+        </div>
+        """)
 
     with main_col_r:
         st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>FIELDBUS P&ID CAD SCHEMATIC</div>", unsafe_allow_html=True)
@@ -829,46 +868,12 @@ def render_live_scada_telemetry():
         if mitigation_active == "Active":
             color_gateway = "#38bdf8"
 
-        cad_svg = f"""
-        <div class="scada-panel" style="padding: 10px; height: 235px; box-sizing: border-box;">
-            <svg width="100%" height="215" viewBox="0 0 320 215" style="background-color: #0b0f17; border-radius: 4px; display: block;">
-                <!-- Bus Lines -->
-                <line x1="60" y1="35" x2="160" y2="105" stroke="{color_node_a}" stroke-width="1.8" stroke-dasharray="4,4" />
-                <line x1="60" y1="80" x2="160" y2="105" stroke="{"#1e293b" if failover_engaged else color_node_b}" stroke-width="1.8" stroke-dasharray="4,4" />
-                <line x1="60" y1="130" x2="160" y2="105" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4,4" />
-                <line x1="60" y1="175" x2="160" y2="105" stroke="{color_node_d if failover_engaged else '#1e293b'}" stroke-width="1.8" stroke-dasharray="4,4" />
-                <line x1="160" y1="105" x2="260" y2="105" stroke="{color_gateway}" stroke-width="2.2" stroke-dasharray="5,5" />
-
-                <!-- Nodes -->
-                <rect x="15" y="24" width="45" height="22" rx="3" fill="#111827" stroke="{color_node_a}" stroke-width="1.5" />
-                <text x="37" y="38" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-A</text>
-
-                <rect x="15" y="69" width="45" height="22" rx="3" fill="#111827" stroke="{color_node_b}" stroke-width="1.5" />
-                <text x="37" y="83" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-B</text>
-
-                <rect x="15" y="119" width="45" height="22" rx="3" fill="#111827" stroke="#10b981" stroke-width="1.5" />
-                <text x="37" y="133" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">CACHE</text>
-
-                <rect x="15" y="164" width="45" height="22" rx="3" fill="#111827" stroke="{color_node_d}" stroke-width="1.5" stroke-dasharray="{ 'none' if failover_engaged else '2,2' }" />
-                <text x="37" y="178" fill="#94a3b8" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">HA-STBY</text>
-
-                <!-- Gateway Hub -->
-                <rect x="140" y="85" width="40" height="40" rx="4" fill="#111827" stroke="{color_gateway}" stroke-width="2" />
-                <text x="160" y="109" fill="#f8fafc" font-size="10" font-family="monospace" text-anchor="middle" font-weight="bold">TSN-GW</text>
-
-                <!-- SCADA Cloud Bridge -->
-                <rect x="245" y="90" width="60" height="30" rx="3" fill="#111827" stroke="#38bdf8" stroke-width="1.5" />
-                <text x="275" y="108" fill="#38bdf8" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">SCADA NOC</text>
-
-                <!-- Protocol Badges -->
-                <text x="70" y="28" fill="#64748b" font-size="7.5" font-family="monospace">Modbus :502</text>
-                <text x="70" y="73" fill="#64748b" font-size="7.5" font-family="monospace">OPC-UA :4840</text>
-                <text x="70" y="123" fill="#64748b" font-size="7.5" font-family="monospace">MQTT :1883</text>
-                <text x="70" y="168" fill="#64748b" font-size="7.5" font-family="monospace">CoAP :5683</text>
-            </svg>
+        cad_uri = generate_cad_schematic_data_uri(color_node_a, color_node_b, color_node_d, color_gateway, failover_engaged)
+        st.html(f"""
+        <div class="scada-panel" style="padding: 6px; height: 235px; box-sizing: border-box; overflow: hidden;">
+            <img src="{cad_uri}" style="width: 100%; height: 223px; display: block; border-radius: 4px;" />
         </div>
-        """
-        st.html(cad_svg)
+        """)
 
     # -----------------------------------------------------------------
     # ISA-18.2 SEQUENCE-OF-EVENTS (SOE) LOG (100% DARK HTML TABLE)
