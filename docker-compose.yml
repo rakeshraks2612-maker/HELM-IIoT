@@ -1,4 +1,18 @@
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
   edge-gateway:
     build: .
     command: python -m uvicorn edge_gateway.gateway_service:app --host 0.0.0.0 --port 8001
@@ -7,6 +21,8 @@ services:
     environment:
       - HELM_ENVIRONMENT=production
       - HELM_GATEWAY_PORT=8001
+    depends_on:
+      - mqtt-broker
     restart: unless-stopped
 
   ingestion-service:
