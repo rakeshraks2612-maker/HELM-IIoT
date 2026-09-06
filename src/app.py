@@ -121,19 +121,36 @@ st.html("""
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* Master Dark Slate Base Viewport with Subtle Ambient Radial Glow */
-.stApp {
-    background-color: #080c14 !important;
+/* Master Dark Slate Base Viewport with Ambient Radial Glow */
+.stApp,
+[data-testid="stAppViewContainer"],
+section.main,
+.main {
+    background-color: #06090e !important;
     background-image: 
-        radial-gradient(ellipse 75% 45% at 50% -10%, rgba(56, 189, 248, 0.07), transparent 70%),
-        radial-gradient(ellipse 55% 35% at 90% 85%, rgba(99, 102, 241, 0.04), transparent 60%),
-        radial-gradient(ellipse 45% 30% at 10% 45%, rgba(16, 185, 129, 0.035), transparent 60%),
-        linear-gradient(rgba(30, 41, 59, 0.28) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(30, 41, 59, 0.28) 1px, transparent 1px) !important;
-    background-size: 100% 100%, 100% 100%, 100% 100%, 28px 28px, 28px 28px !important;
+        radial-gradient(circle 900px at 50% -80px, rgba(14, 165, 233, 0.16), transparent 70%),
+        radial-gradient(circle 750px at 90% 85%, rgba(99, 102, 241, 0.12), transparent 60%),
+        radial-gradient(circle 600px at 10% 50%, rgba(16, 185, 129, 0.09), transparent 60%),
+        linear-gradient(rgba(30, 41, 59, 0.32) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(30, 41, 59, 0.32) 1px, transparent 1px) !important;
+    background-size: 100% 100%, 100% 100%, 100% 100%, 32px 32px, 32px 32px !important;
     background-attachment: fixed !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     color: #cbd5e1 !important;
+}
+
+/* Ambient Horizon Glow Line at Top of Viewport */
+div.block-container::before {
+    content: "";
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2.5px;
+    background: linear-gradient(90deg, #0284c7, #38bdf8, #6366f1, #10b981, #0284c7);
+    box-shadow: 0 0 20px 2px rgba(56, 189, 248, 0.55);
+    z-index: 99999;
 }
 
 /* Enforce Tabular Numerics for Instrumentation Accuracy */
@@ -156,21 +173,22 @@ code, pre {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* Industrial SCADA Panel Cards with Subtle Glow and Guard */
+/* Industrial SCADA Panel Cards with Ambient Backlight Glow */
 .scada-panel {
-    background: rgba(17, 24, 39, 0.88) !important;
-    backdrop-filter: blur(8px) !important;
-    border: 1px solid rgba(56, 189, 248, 0.12) !important;
+    background: rgba(13, 20, 36, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(56, 189, 248, 0.18) !important;
     border-radius: 6px !important;
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 0 15px -3px rgba(56, 189, 248, 0.03) !important;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 18px -3px rgba(14, 165, 233, 0.12) !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
     position: relative !important;
-    transition: all 0.2s ease !important;
+    transition: all 0.2s ease-in-out !important;
 }
 .scada-panel:hover {
-    border-color: rgba(56, 189, 248, 0.3) !important;
-    box-shadow: 0 6px 24px -2px rgba(0, 0, 0, 0.6), 0 0 20px -2px rgba(56, 189, 248, 0.08) !important;
+    border-color: rgba(56, 189, 248, 0.45) !important;
+    box-shadow: 0 6px 28px -2px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 25px 0 rgba(56, 189, 248, 0.22) !important;
 }
 
 /* Custom Table Theme */
@@ -241,13 +259,16 @@ div[data-testid="stTextInput"] input:focus {
     box-shadow: 0 0 0 1px #3b82f6 !important;
 }
 
-/* Industrial Sidebar Navigation */
+/* Industrial Sidebar Navigation with Ambient Radial Glow */
 section[data-testid="stSidebar"],
 section[data-testid="stSidebar"] > div,
 section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-    background-color: #070b12 !important;
-    background-image: radial-gradient(ellipse 100% 40% at 50% 0%, rgba(56, 189, 248, 0.05), transparent 80%) !important;
-    border-right: 1px solid #1e293b !important;
+    background-color: #060a12 !important;
+    background-image: 
+        radial-gradient(circle 500px at 50% 0%, rgba(14, 165, 233, 0.14), transparent 75%),
+        radial-gradient(circle 400px at 50% 100%, rgba(99, 102, 241, 0.08), transparent 70%) !important;
+    border-right: 1px solid rgba(56, 189, 248, 0.15) !important;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5) !important;
 }
 div[data-testid="stSidebarContent"] {
     padding-top: 0.8rem !important;
