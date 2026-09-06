@@ -1,5 +1,5 @@
 # =====================================================================
-# HELM-IIoT: INDUSTRIAL CYBER-PHYSICAL EDGE CONTROL & SCADA MONITORING
+# HELM-IIoT: INDUSTRIAL CYBER-PHYSICAL SCADA MONITORING CENTER
 # HIGH-PERFORMANCE HMI (ISA-101 / ISA-18.2 / IEC 62443-4-2 COMPLIANT)
 # =====================================================================
 import os
@@ -7,12 +7,10 @@ import sys
 import time
 import json
 import base64
-import altair as alt
 import pandas as pd
 import numpy as np
 import xgboost as xgb
 import streamlit as st
-import streamlit.components.v1 as components
 
 # Ensure root workspace directory is in sys.path when running from src/
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -28,7 +26,7 @@ from config.settings import settings
 # STREAMLIT PAGE CONFIGURATION
 # ---------------------------------------------------------------------
 st.set_page_config(
-    page_title="HELM-IIoT | Industrial SCADA & Edge Control Center",
+    page_title="HELM-IIoT | Industrial SCADA Control Center",
     page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -60,7 +58,7 @@ if "throttling_temp_threshold" not in st.session_state:
 if "failover_drop_threshold" not in st.session_state:
     st.session_state.failover_drop_threshold = 1.80
 if "total_cycles" not in st.session_state:
-    st.session_state.total_cycles = 42
+    st.session_state.total_cycles = 50
 if "mitigation_checks" not in st.session_state:
     st.session_state.mitigation_checks = 0
 if "mitigations_successful" not in st.session_state:
@@ -106,27 +104,28 @@ if "history" not in st.session_state:
     st.session_state.history = pd.DataFrame(warm_start_data)
 
 # ---------------------------------------------------------------------
-# HIGH PERFORMANCE HMI (ISA-101) INDUSTRIAL DESIGN SYSTEM
+# HIGH PERFORMANCE HMI (ISA-101) INDUSTRIAL DESIGN SYSTEM (100% DARK)
 # ---------------------------------------------------------------------
 st.html("""
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-/* Base Viewport - Industrial Charcoal & Slate */
+/* Master Dark Slate Base Viewport */
 .stApp {
     background-color: #0b0f17 !important;
     background-image: 
         linear-gradient(rgba(30, 41, 59, 0.35) 1px, transparent 1px),
         linear-gradient(90deg, rgba(30, 41, 59, 0.35) 1px, transparent 1px) !important;
-    background-size: 32px 32px !important;
+    background-size: 28px 28px !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
-    color: #e2e8f0 !important;
+    color: #cbd5e1 !important;
 }
 
-/* Tabular figures for telemetry accuracy */
+/* Enforce Tabular Numerics for Instrumentation Accuracy */
 * {
     font-variant-numeric: tabular-nums;
+    box-sizing: border-box;
 }
 
 /* Typography Hierarchy */
@@ -134,7 +133,7 @@ h1, h2, h3, h4, h5, h6 {
     font-family: 'Inter', sans-serif !important;
     font-weight: 700 !important;
     color: #f8fafc !important;
-    letter-spacing: -0.02em !important;
+    letter-spacing: -0.01em !important;
 }
 p, span, label {
     color: #94a3b8 !important;
@@ -143,17 +142,69 @@ code, pre {
     font-family: 'JetBrains Mono', monospace !important;
 }
 
-/* Industrial Instrument Card */
+/* Industrial SCADA Panel Cards */
 .scada-panel {
     background: #111827 !important;
     border: 1px solid #1f2937 !important;
     border-radius: 6px !important;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4) !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.5) !important;
     box-sizing: border-box !important;
     transition: border-color 0.15s ease !important;
 }
 .scada-panel:hover {
     border-color: #374151 !important;
+}
+
+/* Custom Table Theme */
+.scada-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+}
+.scada-table th {
+    background: #0f172a;
+    color: #94a3b8;
+    text-align: left;
+    padding: 8px 10px;
+    font-weight: 600;
+    border-bottom: 1px solid #1e293b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.scada-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #1a2234;
+    color: #e2e8f0;
+}
+.scada-table tr:hover {
+    background: #1e293b;
+}
+
+/* Priority Badges */
+.badge-p1 {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border: 1px solid #dc2626;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+.badge-p2 {
+    background: #78350f;
+    color: #fcd34d;
+    border: 1px solid #d97706;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+.badge-p3 {
+    background: #1e3a8a;
+    color: #93c5fd;
+    border: 1px solid #2563eb;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 700;
 }
 
 /* High Contrast Technical Form Inputs */
@@ -224,9 +275,9 @@ div.stDownloadButton > button {
     border: 1px solid #334155 !important;
     border-radius: 4px !important;
     font-weight: 600 !important;
-    font-size: 12px !important;
+    font-size: 11.5px !important;
     font-family: 'Inter', sans-serif !important;
-    padding: 6px 14px !important;
+    padding: 7px 12px !important;
     box-shadow: none !important;
     transition: all 0.15s ease-in-out !important;
     width: 100% !important;
@@ -238,27 +289,7 @@ div.stDownloadButton > button:hover {
     color: #ffffff !important;
 }
 
-/* Control Actuation Buttons */
-.actuate-primary button {
-    background: #065f46 !important;
-    border: 1px solid #059669 !important;
-    color: #ecfdf5 !important;
-}
-.actuate-primary button:hover {
-    background: #059669 !important;
-    border-color: #10b981 !important;
-}
-.actuate-danger button {
-    background: #7f1d1d !important;
-    border: 1px solid #dc2626 !important;
-    color: #fef2f2 !important;
-}
-.actuate-danger button:hover {
-    background: #dc2626 !important;
-    border-color: #ef4444 !important;
-}
-
-/* Industrial Sliders */
+/* Sliders */
 div[data-testid="stSlider"] [data-baseweb="slider"] > div {
     background: #1e293b !important;
     height: 4px !important;
@@ -272,7 +303,6 @@ div[data-testid="stSlider"] [data-baseweb="slider"] > div > div {
 div[data-testid="stSlider"] [role="slider"] {
     background-color: #3b82f6 !important;
     border: 2px solid #ffffff !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;
     width: 12px !important;
     height: 12px !important;
 }
@@ -286,32 +316,25 @@ div[data-testid="stNotification"] {
     border-radius: 4px !important;
 }
 
-/* Expanders */
-div[data-testid="stExpander"] {
-    background-color: #111827 !important;
-    border: 1px solid #1f2937 !important;
-    border-radius: 4px !important;
-}
-
 /* Clean Header Adjustments */
 header[data-testid="stHeader"] {
     background-color: transparent !important;
     height: 0px !important;
 }
 div.block-container {
-    padding-top: 1.2rem !important;
+    padding-top: 1.0rem !important;
     padding-bottom: 2rem !important;
 }
 </style>
 """)
 
 # ---------------------------------------------------------------------
-# VECTOR SVG INDUSTRIAL ICON & SPARKLINE HELPERS
+# VECTOR SVG GENERATORS (SPARKLINE, OSCILLOSCOPE & CAD SCHEMATICS)
 # ---------------------------------------------------------------------
 def svg_to_data_uri(svg_string):
     return "data:image/svg+xml;base64," + base64.b64encode(svg_string.strip().encode("utf-8")).decode("utf-8")
 
-def generate_industrial_sparkline(values, stroke_color="#3b82f6", height=24, width=90):
+def generate_sparkline_svg(values, stroke_color="#10b981", height=24, width=110):
     if len(values) < 2:
         return ""
     min_v, max_v = min(values), max(values)
@@ -324,57 +347,144 @@ def generate_industrial_sparkline(values, stroke_color="#3b82f6", height=24, wid
         points.append(f"{x:.1f},{y:.1f}")
         
     path_d = "M " + " L ".join(points)
-    svg_raw = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">
-        <path d="{path_d}" fill="none" stroke="{stroke_color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+    svg_raw = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" style="display:block;">
+        <path d="{path_d}" fill="none" stroke="{stroke_color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
     </svg>"""
     return svg_to_data_uri(svg_raw)
 
-# High-Performance HMI (ISA-101) KPI Gauge Card
+# Clean High Performance HMI KPI Card
 def render_scada_kpi_card(tag_id, label, value, unit, nominal_range, limit_val, quality="GOOD", spark_values=None, alarm_active=False):
     status_bg = "#7f1d1d" if alarm_active else "#064e3b"
     status_border = "#dc2626" if alarm_active else "#059669"
-    status_text = "#f87171" if alarm_active else "#34d399"
+    status_text = "#fca5a5" if alarm_active else "#6ee7b7"
     val_color = "#ef4444" if alarm_active else "#f8fafc"
-    spark_uri = generate_industrial_sparkline(spark_values if spark_values is not None else [1, 1], stroke_color=status_border)
+    stroke_col = "#ef4444" if alarm_active else "#10b981"
+    
+    spark_uri = generate_sparkline_svg(spark_values if spark_values is not None else [1, 1], stroke_color=stroke_col)
     
     return f"""
-    <div class="scada-panel" style="padding: 10px 12px; height: 118px; display: flex; flex-direction: column; justify-content: space-between;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">
-                    {tag_id}
-                </div>
-                <div style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-top: 1px;">
-                    {label}
-                </div>
-            </div>
-            <div style="background: {status_bg}; border: 1px solid {status_border}; color: {status_text}; font-size: 8.5px; padding: 1px 5px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
+    <div class="scada-panel" style="padding: 12px 14px; min-height: 125px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: #64748b; font-weight: 700; letter-spacing: 0.5px;">
+                {tag_id}
+            </span>
+            <span style="background: {status_bg}; border: 1px solid {status_border}; color: {status_text}; font-size: 8.5px; padding: 1px 6px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
                 {quality}
-            </div>
+            </span>
         </div>
         
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 6px;">
             <div>
+                <div style="font-size: 11px; font-weight: 500; color: #94a3b8; margin-bottom: 2px;">
+                    {label}
+                </div>
                 <div style="font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800; color: {val_color}; line-height: 1.0;">
                     {value} <span style="font-size: 11px; font-weight: 500; color: #64748b;">{unit}</span>
                 </div>
-                <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #64748b; margin-top: 4px;">
-                    NOM: <span style="color: #94a3b8;">{nominal_range}</span> | LIMIT: <span style="color: #f59e0b;">{limit_val}</span>
-                </div>
             </div>
-            <div style="margin-bottom: 2px;">
-                <img src="{spark_uri}" style="width: 85px; height: 22px; display: block;" />
+            <div style="flex-shrink: 0;">
+                <img src="{spark_uri}" style="width: 100px; height: 24px; display: block;" />
             </div>
+        </div>
+
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #64748b; border-top: 1px solid #1a2234; padding-top: 6px; margin-top: 6px; display: flex; justify-content: space-between;">
+            <span>NOM: <b style="color: #94a3b8;">{nominal_range}</b></span>
+            <span>LIMIT: <b style="color: #f59e0b;">{limit_val}</b></span>
         </div>
     </div>
     """
+
+# 100% Dark SVG Dual-Trace Real-Time Oscilloscope
+def render_oscilloscope_svg(history_df, ucl=60.0, uwl=45.0):
+    width, height = 580, 210
+    pad_left, pad_right, pad_top, pad_bottom = 35, 15, 20, 25
+    plot_w = width - pad_left - pad_right
+    plot_h = height - pad_top - pad_bottom
+    
+    max_lat = max(80.0, max(history_df["Actual_Latency"].max(), history_df["Predicted_Latency"].max()) * 1.15)
+    min_lat = 0.0
+    lat_range = max_lat - min_lat
+    
+    # Generate points for Predicted Latency and Actual Latency
+    pred_pts = []
+    act_pts = []
+    n_pts = len(history_df)
+    
+    for i in range(n_pts):
+        x = pad_left + (i / max(1, n_pts - 1)) * plot_w
+        
+        y_pred = pad_top + plot_h - ((history_df["Predicted_Latency"].iloc[i] - min_lat) / lat_range) * plot_h
+        pred_pts.append(f"{x:.1f},{y_pred:.1f}")
+        
+        y_act = pad_top + plot_h - ((history_df["Actual_Latency"].iloc[i] - min_lat) / lat_range) * plot_h
+        act_pts.append(f"{x:.1f},{y_act:.1f}")
+        
+    pred_path = "M " + " L ".join(pred_pts)
+    act_path = "M " + " L ".join(act_pts)
+    
+    # Limit lines
+    y_ucl = pad_top + plot_h - ((ucl - min_lat) / lat_range) * plot_h
+    y_uwl = pad_top + plot_h - ((uwl - min_lat) / lat_range) * plot_h
+    
+    # Grid lines (every 20ms)
+    grid_lines = []
+    for g_val in [20, 40, 60, 80]:
+        if g_val < max_lat:
+            y_g = pad_top + plot_h - ((g_val - min_lat) / lat_range) * plot_h
+            grid_lines.append(f'<line x1="{pad_left}" y1="{y_g:.1f}" x2="{width - pad_right}" y2="{y_g:.1f}" stroke="#1e293b" stroke-width="1" />')
+            grid_lines.append(f'<text x="{pad_left - 6}" y="{y_g + 3:.1f}" fill="#64748b" font-size="8.5" font-family="monospace" text-anchor="end">{g_val}</text>')
+            
+    cur_pred = history_df["Predicted_Latency"].iloc[-1]
+    cur_act = history_df["Actual_Latency"].iloc[-1]
+    
+    svg_scope = f"""
+    <div class="scada-panel" style="padding: 10px; height: 235px; box-sizing: border-box;">
+        <svg width="100%" height="215" viewBox="0 0 {width} {height}" style="background-color: #0b0f17; border-radius: 4px; display: block;">
+            <!-- Grid Background Lines -->
+            {' '.join(grid_lines)}
+            
+            <!-- Axis lines -->
+            <line x1="{pad_left}" y1="{pad_top}" x2="{pad_left}" y2="{pad_top + plot_h}" stroke="#334155" stroke-width="1.5" />
+            <line x1="{pad_left}" y1="{pad_top + plot_h}" x2="{width - pad_right}" y2="{pad_top + plot_h}" stroke="#334155" stroke-width="1.5" />
+            
+            <!-- Warning Limit (UWL 45 ms) -->
+            <line x1="{pad_left}" y1="{y_uwl:.1f}" x2="{width - pad_right}" y2="{y_uwl:.1f}" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,4" />
+            <text x="{width - pad_right - 4}" y="{y_uwl - 3:.1f}" fill="#f59e0b" font-size="8" font-family="monospace" text-anchor="end" font-weight="bold">UWL {uwl:.0f}ms</text>
+
+            <!-- Control Limit (UCL 60 ms) -->
+            <line x1="{pad_left}" y1="{y_ucl:.1f}" x2="{width - pad_right}" y2="{y_ucl:.1f}" stroke="#ef4444" stroke-width="1.4" stroke-dasharray="4,4" />
+            <text x="{width - pad_right - 4}" y="{y_ucl - 3:.1f}" fill="#ef4444" font-size="8" font-family="monospace" text-anchor="end" font-weight="bold">UCL {ucl:.0f}ms</text>
+
+            <!-- Trace 1: Predicted Latency (Cyan / Blue) -->
+            <path d="{pred_path}" fill="none" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- Trace 2: Actual Latency (Green) -->
+            <path d="{act_path}" fill="none" stroke="#10b981" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+
+            <!-- Scope Header Legend -->
+            <rect x="{pad_left + 10}" y="6" width="310" height="18" rx="2" fill="#111827" stroke="#1e293b" />
+            <circle cx="{pad_left + 20}" cy="15" r="3" fill="#38bdf8" />
+            <text x="{pad_left + 28}" y="18" fill="#e2e8f0" font-size="8.5" font-family="monospace">PRED: <tspan fill="#38bdf8" font-weight="bold">{cur_pred:.2f} ms</tspan></text>
+
+            <circle cx="{pad_left + 115}" cy="15" r="3" fill="#10b981" />
+            <text x="{pad_left + 123}" y="18" fill="#e2e8f0" font-size="8.5" font-family="monospace">ACTUAL: <tspan fill="#10b981" font-weight="bold">{cur_act:.2f} ms</tspan></text>
+
+            <line x1="{pad_left + 215}" y1="15" x2="{pad_left + 225}" y2="15" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="2,2" />
+            <text x="{pad_left + 230}" y="18" fill="#fca5a5" font-size="8.5" font-family="monospace">UCL: {ucl:.0f}ms</text>
+
+            <!-- Bottom X-Axis Label -->
+            <text x="{width / 2}" y="{height - 6}" fill="#64748b" font-size="8.5" font-family="monospace" text-anchor="middle">REAL-TIME SAMPLING WINDOW (t-30s ... t0)</text>
+        </svg>
+    </div>
+    """
+    return svg_scope
 
 # ---------------------------------------------------------------------
 # SIDEBAR: INDUSTRIAL CONTROL & SCADA DISPATCHER
 # ---------------------------------------------------------------------
 with st.sidebar:
     st.html("""
-    <div style="padding: 8px 0 12px 0; border-bottom: 1px solid #1e293b; margin-bottom: 12px;">
+    <div style="padding: 6px 0 12px 0; border-bottom: 1px solid #1e293b; margin-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
             <div style="background: #1e293b; border: 1px solid #334155; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px;">
                 🏭
@@ -678,18 +788,22 @@ def render_live_scada_telemetry():
     
     active_controller_str = "NODE_DELTA (HA)" if failover_engaged else "NODE_ALPHA (PRI)"
     k6.html(f"""
-    <div class="scada-panel" style="padding: 10px 12px; height: 118px; display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: #64748b; font-weight: 700;">TAG: PLC-STATUS-06</div>
-            <div style="font-size: 11px; font-weight: 600; color: #94a3b8; margin-top: 1px;">Active Controller</div>
+    <div class="scada-panel" style="padding: 12px 14px; min-height: 125px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 9.5px; color: #64748b; font-weight: 700;">TAG: PLC-STATUS-06</span>
+            <span style="background: {'#78350f' if failover_engaged else '#064e3b'}; border: 1px solid {'#d97706' if failover_engaged else '#059669'}; color: {'#fcd34d' if failover_engaged else '#6ee7b7'}; font-size: 8.5px; padding: 1px 6px; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-weight: 700;">
+                {'HA_ACTIVE' if failover_engaged else 'PRIMARY'}
+            </span>
         </div>
         <div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; color: {'#f59e0b' if failover_engaged else '#34d399'};">
+            <div style="font-size: 11px; font-weight: 500; color: #94a3b8; margin-bottom: 2px;">Active Controller</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 800; color: {'#f59e0b' if failover_engaged else '#34d399'};">
                 {active_controller_str}
             </div>
-            <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #64748b; margin-top: 4px;">
-                HEARTBEAT: <span style="color: #34d399;">10ms CYCLIC</span>
-            </div>
+        </div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #64748b; border-top: 1px solid #1a2234; padding-top: 6px; margin-top: 6px; display: flex; justify-content: space-between;">
+            <span>HEARTBEAT: <b style="color: #34d399;">10ms CYCLIC</b></span>
+            <span>SYNC: <b style="color: #38bdf8;">LOCK 0x00</b></span>
         </div>
     </div>
     """)
@@ -697,119 +811,111 @@ def render_live_scada_telemetry():
     st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
 
     # -----------------------------------------------------------------
-    # OSCILLOSCOPE DUAL-TRACE CHART & FIELDBUS SCHEMATIC
+    # 100% DARK OSCILLOSCOPE & P&ID CAD SCHEMATIC
     # -----------------------------------------------------------------
-    main_col_l, main_col_r = st.columns([2.2, 1.0])
+    main_col_l, main_col_r = st.columns([2.0, 1.2])
 
     with main_col_l:
-        st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>REAL-TIME DUAL-TRACE FIELDBUS OSCILLOSCOPE (PREDICTED VS ACTUAL LATENCY MS)</div>", unsafe_allow_html=True)
-        
-        # Build High-Precision Altair Oscilloscope with Upper Control & Warning Limit Bands
-        plot_df = chart_df.copy()
-        plot_df["UCL_Limit"] = float(st.session_state.latency_threshold_ms)
-        plot_df["UWL_Limit"] = float(st.session_state.warning_threshold_ms)
-        
-        melted_df = plot_df.melt(
-            id_vars=["Time"],
-            value_vars=["Predicted_Latency", "Actual_Latency", "UCL_Limit", "UWL_Limit"],
-            var_name="Signal",
-            value_name="Latency_ms"
-        )
-
-        color_scale = alt.Scale(
-            domain=["Predicted_Latency", "Actual_Latency", "UCL_Limit", "UWL_Limit"],
-            range=["#3b82f6", "#10b981", "#ef4444", "#f59e0b"]
-        )
-
-        base = alt.Chart(melted_df).encode(
-            x=alt.X("Time:N", axis=alt.Axis(title="Sample Time (UTC)", labelColor="#64748b", titleColor="#94a3b8", grid=True, gridColor="#1e293b")),
-            y=alt.Y("Latency_ms:Q", axis=alt.Axis(title="Latency (ms)", labelColor="#64748b", titleColor="#94a3b8", grid=True, gridColor="#1e293b")),
-            color=alt.Color("Signal:N", scale=color_scale, legend=alt.Legend(title=None, labelColor="#e2e8f0", orient="top"))
-        )
-
-        line_chart = base.mark_line(strokeWidth=2).properties(height=230)
-        st.altair_chart(line_chart, use_container_width=True)
+        st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>REAL-TIME DUAL-TRACE FIELDBUS OSCILLOSCOPE</div>", unsafe_allow_html=True)
+        st.html(render_oscilloscope_svg(chart_df, ucl=st.session_state.latency_threshold_ms, uwl=st.session_state.warning_threshold_ms))
 
     with main_col_r:
         st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>FIELDBUS P&ID CAD SCHEMATIC</div>", unsafe_allow_html=True)
         
-        # Crisp Industrial P&ID CAD Schematic (Clean Slate & Precision Lines)
         color_node_a = "#10b981" if throttled_state == "False" else "#f59e0b"
-        color_node_b = "#334155" if failover_engaged else ("#10b981" if packet_drop <= 1.0 else "#ef4444")
-        color_node_d = "#f59e0b" if failover_engaged else "#1e293b"
+        color_node_b = "#475569" if failover_engaged else ("#10b981" if packet_drop <= 1.0 else "#ef4444")
+        color_node_d = "#f59e0b" if failover_engaged else "#334155"
         color_gateway = "#ef4444" if predicted_latency >= st.session_state.latency_threshold_ms else "#10b981"
         if mitigation_active == "Active":
-            color_gateway = "#3b82f6"
+            color_gateway = "#38bdf8"
 
         cad_svg = f"""
-        <div class="scada-panel" style="padding: 10px; height: 230px; box-sizing: border-box;">
-            <svg width="100%" height="205" viewBox="0 0 280 205" style="background-color: #0b0f17; border-radius: 4px;">
-                <defs>
-                    <pattern id="cad-grid" width="16" height="16" patternUnits="userSpaceOnUse">
-                        <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#1e293b" stroke-width="0.5"/>
-                    </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#cad-grid)" />
+        <div class="scada-panel" style="padding: 10px; height: 235px; box-sizing: border-box;">
+            <svg width="100%" height="215" viewBox="0 0 320 215" style="background-color: #0b0f17; border-radius: 4px; display: block;">
+                <!-- Bus Lines -->
+                <line x1="60" y1="35" x2="160" y2="105" stroke="{color_node_a}" stroke-width="1.8" stroke-dasharray="4,4" />
+                <line x1="60" y1="80" x2="160" y2="105" stroke="{"#1e293b" if failover_engaged else color_node_b}" stroke-width="1.8" stroke-dasharray="4,4" />
+                <line x1="60" y1="130" x2="160" y2="105" stroke="#10b981" stroke-width="1.8" stroke-dasharray="4,4" />
+                <line x1="60" y1="175" x2="160" y2="105" stroke="{color_node_d if failover_engaged else '#1e293b'}" stroke-width="1.8" stroke-dasharray="4,4" />
+                <line x1="160" y1="105" x2="260" y2="105" stroke="{color_gateway}" stroke-width="2.2" stroke-dasharray="5,5" />
 
-                <!-- Bus Trunk Lines -->
-                <line x1="50" y1="30" x2="135" y2="100" stroke="#334155" stroke-width="1.5" />
-                <line x1="50" y1="75" x2="135" y2="100" stroke="#334155" stroke-width="1.5" />
-                <line x1="50" y1="125" x2="135" y2="100" stroke="#334155" stroke-width="1.5" />
-                <line x1="50" y1="170" x2="135" y2="100" stroke="#334155" stroke-width="1.5" stroke-dasharray="2,2" />
-                <line x1="135" y1="100" x2="225" y2="100" stroke="#334155" stroke-width="2" />
+                <!-- Nodes -->
+                <rect x="15" y="24" width="45" height="22" rx="3" fill="#111827" stroke="{color_node_a}" stroke-width="1.5" />
+                <text x="37" y="38" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-A</text>
 
-                <!-- Flow Indicators -->
-                <line x1="50" y1="30" x2="135" y2="100" stroke="{color_node_a}" stroke-width="1.5" stroke-dasharray="4,4" />
-                <line x1="50" y1="75" x2="135" y2="100" stroke="{"transparent" if failover_engaged else color_node_b}" stroke-width="1.5" stroke-dasharray="4,4" />
-                <line x1="50" y1="125" x2="135" y2="100" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,4" />
-                <line x1="50" y1="170" x2="135" y2="100" stroke="{color_node_d if failover_engaged else "transparent"}" stroke-width="1.5" stroke-dasharray="4,4" />
-                <line x1="135" y1="100" x2="225" y2="100" stroke="{color_gateway}" stroke-width="2" stroke-dasharray="4,4" />
+                <rect x="15" y="69" width="45" height="22" rx="3" fill="#111827" stroke="{color_node_b}" stroke-width="1.5" />
+                <text x="37" y="83" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">PLC-B</text>
 
-                <!-- CAD Node Blocks -->
-                <rect x="20" y="20" width="30" height="20" rx="2" fill="#1e293b" stroke="{color_node_a}" stroke-width="1.5" />
-                <text x="35" y="34" fill="#f8fafc" font-size="8" font-family="monospace" text-anchor="middle" font-weight="bold">N-A</text>
+                <rect x="15" y="119" width="45" height="22" rx="3" fill="#111827" stroke="#10b981" stroke-width="1.5" />
+                <text x="37" y="133" fill="#f8fafc" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">CACHE</text>
 
-                <rect x="20" y="65" width="30" height="20" rx="2" fill="#1e293b" stroke="{color_node_b}" stroke-width="1.5" />
-                <text x="35" y="79" fill="#f8fafc" font-size="8" font-family="monospace" text-anchor="middle" font-weight="bold">N-B</text>
-
-                <rect x="20" y="115" width="30" height="20" rx="2" fill="#1e293b" stroke="#10b981" stroke-width="1.5" />
-                <text x="35" y="129" fill="#f8fafc" font-size="8" font-family="monospace" text-anchor="middle" font-weight="bold">N-C</text>
-
-                <rect x="20" y="160" width="30" height="20" rx="2" fill="#1e293b" stroke="{color_node_d}" stroke-width="1.5" stroke-dasharray="2,2" />
-                <text x="35" y="174" fill="#94a3b8" font-size="8" font-family="monospace" text-anchor="middle" font-weight="bold">N-D</text>
+                <rect x="15" y="164" width="45" height="22" rx="3" fill="#111827" stroke="{color_node_d}" stroke-width="1.5" stroke-dasharray="{ 'none' if failover_engaged else '2,2' }" />
+                <text x="37" y="178" fill="#94a3b8" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">HA-STBY</text>
 
                 <!-- Gateway Hub -->
-                <rect x="120" y="85" width="30" height="30" rx="3" fill="#1e293b" stroke="{color_gateway}" stroke-width="2" />
-                <text x="135" y="103" fill="#f8fafc" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">GW</text>
+                <rect x="140" y="85" width="40" height="40" rx="4" fill="#111827" stroke="{color_gateway}" stroke-width="2" />
+                <text x="160" y="109" fill="#f8fafc" font-size="10" font-family="monospace" text-anchor="middle" font-weight="bold">TSN-GW</text>
 
                 <!-- SCADA Cloud Bridge -->
-                <rect x="215" y="88" width="45" height="24" rx="2" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5" />
-                <text x="237" y="103" fill="#38bdf8" font-size="8.5" font-family="monospace" text-anchor="middle" font-weight="bold">SCADA</text>
+                <rect x="245" y="90" width="60" height="30" rx="3" fill="#111827" stroke="#38bdf8" stroke-width="1.5" />
+                <text x="275" y="108" fill="#38bdf8" font-size="9" font-family="monospace" text-anchor="middle" font-weight="bold">SCADA NOC</text>
 
-                <!-- Port Labels -->
-                <text x="60" y="25" fill="#64748b" font-size="7" font-family="monospace">Modbus 502</text>
-                <text x="60" y="70" fill="#64748b" font-size="7" font-family="monospace">OPC-UA 4840</text>
-                <text x="60" y="120" fill="#64748b" font-size="7" font-family="monospace">MQTT 1883</text>
-                <text x="60" y="165" fill="#64748b" font-size="7" font-family="monospace">Standby</text>
+                <!-- Protocol Badges -->
+                <text x="70" y="28" fill="#64748b" font-size="7.5" font-family="monospace">Modbus :502</text>
+                <text x="70" y="73" fill="#64748b" font-size="7.5" font-family="monospace">OPC-UA :4840</text>
+                <text x="70" y="123" fill="#64748b" font-size="7.5" font-family="monospace">MQTT :1883</text>
+                <text x="70" y="168" fill="#64748b" font-size="7.5" font-family="monospace">CoAP :5683</text>
             </svg>
         </div>
         """
         st.html(cad_svg)
 
     # -----------------------------------------------------------------
-    # ISA-18.2 REAL-TIME SEQUENCE-OF-EVENTS (SOE) ALARM BANNER
+    # ISA-18.2 SEQUENCE-OF-EVENTS (SOE) LOG (100% DARK HTML TABLE)
     # -----------------------------------------------------------------
     st.markdown("<div style='margin-top: 12px;'></div>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>ISA-18.2 REAL-TIME ALARM & SEQUENCE-OF-EVENTS (SOE) LOG</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:10px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>ISA-18.2 SEQUENCE-OF-EVENTS (SOE) ALARM & EVENT STREAM</div>", unsafe_allow_html=True)
     
-    alarm_df = pd.DataFrame(st.session_state.incident_logs[-6:]).iloc[::-1]
-    st.dataframe(alarm_df, use_container_width=True, height=140)
+    rows_html = []
+    for log in st.session_state.incident_logs[-6:][::-1]:
+        p_class = "badge-p1" if "CRIT" in log["Priority"] or "FAILOVER" in log.get("Quality", "") else ("badge-p2" if "WARN" in log["Priority"] else "badge-p3")
+        rows_html.append(f"""
+        <tr>
+            <td style="color:#94a3b8;">{log['Timestamp']}</td>
+            <td style="color:#f8fafc; font-weight:bold;">{log.get('Alarm_ID', 'ALM-1000')}</td>
+            <td><span class="{p_class}">{log['Priority']}</span></td>
+            <td style="color:#38bdf8;">{log.get('Tag', 'SYS')}</td>
+            <td>{log['Event']}</td>
+            <td style="color:#64748b;">{log.get('Quality', 'GOOD_0x00')}</td>
+        </tr>
+        """)
+
+    table_html = f"""
+    <div class="scada-panel" style="padding: 0; overflow: hidden;">
+        <table class="scada-table">
+            <thead>
+                <tr>
+                    <th style="width: 85px;">TIMESTAMP</th>
+                    <th style="width: 100px;">ALARM ID</th>
+                    <th style="width: 90px;">PRIORITY</th>
+                    <th style="width: 120px;">TAG NAME</th>
+                    <th>EVENT DESCRIPTION</th>
+                    <th style="width: 110px;">QUALITY CODE</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows_html)}
+            </tbody>
+        </table>
+    </div>
+    """
+    st.html(table_html)
 
     # Export Action Bar
     mae = mean_absolute_error(chart_df["Actual_Latency"], chart_df["Predicted_Latency"])
     e_c1, e_c2, e_c3 = st.columns([2.5, 1, 1])
     e_c1.info(f"Predictive Model MAE: **{mae:.4f} ms** | Cycle Overhead: **{compute_overhead:.2f} ms** | Active Policy: **ISA-101 HMI Compliant**")
-    e_c2.download_button("Export SOE Log (.CSV)", data=alarm_df.to_csv(index=False).encode('utf-8'), file_name="scada_soe_log.csv", mime="text/csv", key="btn_dl_soe_csv")
+    e_c2.download_button("Export SOE Log (.CSV)", data=pd.DataFrame(st.session_state.incident_logs).to_csv(index=False).encode('utf-8'), file_name="scada_soe_log.csv", mime="text/csv", key="btn_dl_soe_csv")
     e_c3.download_button("Export Telemetry (.JSON)", data=chart_df.to_json(orient="records", indent=2).encode('utf-8'), file_name="scada_telemetry.json", mime="application/json", key="btn_dl_telemetry_json")
 
 # ---------------------------------------------------------------------
@@ -975,7 +1081,6 @@ def render_fieldbus_topology_cad():
     </div>
     """)
 
-    # Interactive Topology Diagnostics
     t_c1, t_c2 = st.columns(2)
     with t_c1:
         st.markdown("##### Zone 1: Field Device & Sensor Interconnects")
@@ -985,7 +1090,16 @@ def render_fieldbus_topology_cad():
             {"Tag": "SEN-MQT-03", "Protocol": "MQTT v5 (Sparkplug)", "Address": "192.168.10.23", "Scan_Rate": "50 ms", "Frame_Loss": "0.02%", "Status": "NOMINAL"},
             {"Tag": "SEN-PFN-04", "Protocol": "PROFINET IRT", "Address": "192.168.10.24", "Scan_Rate": "5 ms", "Frame_Loss": "0.00%", "Status": "NOMINAL"}
         ]
-        st.dataframe(pd.DataFrame(sensor_data), use_container_width=True, height=180)
+        
+        s_rows = "".join([f"<tr><td style='color:#38bdf8; font-weight:bold;'>{s['Tag']}</td><td>{s['Protocol']}</td><td>{s['Address']}</td><td>{s['Scan_Rate']}</td><td>{s['Frame_Loss']}</td><td style='color:#10b981; font-weight:bold;'>{s['Status']}</td></tr>" for s in sensor_data])
+        st.html(f"""
+        <div class="scada-panel" style="padding:0; overflow:hidden;">
+            <table class="scada-table">
+                <thead><tr><th>TAG</th><th>PROTOCOL</th><th>IP ADDRESS</th><th>SCAN</th><th>LOSS</th><th>STATUS</th></tr></thead>
+                <tbody>{s_rows}</tbody>
+            </table>
+        </div>
+        """)
 
     with t_c2:
         st.markdown("##### Zone 2: Controller Redundancy & Gateways")
@@ -994,7 +1108,16 @@ def render_fieldbus_topology_cad():
             {"Node": "PLC_BETA", "Role": "ML Inference Core", "IP": "192.168.10.15", "CPU": "64.0%", "Temp": "53.8 °C", "State": "ACTIVE"},
             {"Node": "PLC_DELTA", "Role": "Hot Standby HA", "IP": "192.168.10.17", "CPU": "11.2%", "Temp": "39.1 °C", "State": "STANDBY"}
         ]
-        st.dataframe(pd.DataFrame(controller_data), use_container_width=True, height=180)
+        
+        c_rows = "".join([f"<tr><td style='color:#f8fafc; font-weight:bold;'>{c['Node']}</td><td>{c['Role']}</td><td>{c['IP']}</td><td>{c['CPU']}</td><td>{c['Temp']}</td><td style='color:{'#10b981' if c['State']=='ACTIVE' else '#f59e0b'}; font-weight:bold;'>{c['State']}</td></tr>" for c in controller_data])
+        st.html(f"""
+        <div class="scada-panel" style="padding:0; overflow:hidden;">
+            <table class="scada-table">
+                <thead><tr><th>NODE</th><th>ROLE</th><th>IP ADDRESS</th><th>CPU</th><th>TEMP</th><th>STATE</th></tr></thead>
+                <tbody>{c_rows}</tbody>
+            </table>
+        </div>
+        """)
 
 # ---------------------------------------------------------------------
 # VIEW 4: EDGE FLEET & PLC NODE ASSET INVENTORY
@@ -1012,7 +1135,16 @@ def render_edge_fleet_assets():
         {"Node_ID": "NODE_GAMMA", "Role": "Local Storage & Feature Store", "IP": "192.168.10.16", "CPU_Load": "28.3%", "RAM": "82.0%", "Temp": "44.7 °C", "MTBF": "110,000 hrs", "Health": "SYNCED", "Uptime": "99.99%"},
         {"Node_ID": "NODE_DELTA", "Role": "HA Redundancy Failover", "IP": "192.168.10.17", "CPU_Load": "12.0%", "RAM": "24.1%", "Temp": "39.4 °C", "MTBF": "125,000 hrs", "Health": "HOT STANDBY", "Uptime": "100.00%"}
     ]
-    st.dataframe(pd.DataFrame(nodes), use_container_width=True, height=180)
+    
+    n_rows = "".join([f"<tr><td style='color:#38bdf8; font-weight:bold;'>{n['Node_ID']}</td><td>{n['Role']}</td><td>{n['IP']}</td><td>{n['CPU_Load']}</td><td>{n['RAM']}</td><td>{n['Temp']}</td><td>{n['MTBF']}</td><td style='color:#10b981; font-weight:bold;'>{n['Health']}</td><td style='color:#e2e8f0;'>{n['Uptime']}</td></tr>" for n in nodes])
+    st.html(f"""
+    <div class="scada-panel" style="padding:0; overflow:hidden; margin-bottom: 14px;">
+        <table class="scada-table">
+            <thead><tr><th>NODE ID</th><th>ROLE</th><th>IP ADDRESS</th><th>CPU LOAD</th><th>RAM</th><th>TEMP</th><th>MTBF</th><th>HEALTH</th><th>UPTIME SLA</th></tr></thead>
+            <tbody>{n_rows}</tbody>
+        </table>
+    </div>
+    """)
 
     f_b1, f_b2 = st.columns(2)
     with f_b1:
@@ -1037,7 +1169,7 @@ def render_treeshap_feature_store():
     c1, c2 = st.columns(2)
 
     with c1:
-        st.markdown("##### Real-Time TreeSHAP Attribution Tornado (Δ ms)")
+        st.markdown("##### Real-Time TreeSHAP Attribution Breakdown (Δ ms)")
         sample_pred = helm_client.predict_latency(
             throughput=float(chart_df["Throughput"].iloc[-1]) if len(chart_df) > 0 else 84.5,
             drop_pct=float(chart_df["Drops"].iloc[-1]) if len(chart_df) > 0 else 0.35,
@@ -1045,24 +1177,35 @@ def render_treeshap_feature_store():
             temp=float(chart_df["Temperature"].iloc[-1]) if len(chart_df) > 0 else 47.5
         )
         shap_raw = sample_pred.get("shap_attributions", {})
-        shap_df = pd.DataFrame([
-            {"Feature": "Packet Loss Rate (%)", "SHAP_Impact_ms": shap_raw.get("packet_drop_percentage", 5.2)},
-            {"Feature": "TSN Buffer Saturation (%)", "SHAP_Impact_ms": shap_raw.get("buffer_utilization_percentage", 3.4)},
-            {"Feature": "Dynamic Cluster Regime", "SHAP_Impact_ms": shap_raw.get("dynamic_operational_label", 2.1)},
-            {"Feature": "Throughput Trend Slope", "SHAP_Impact_ms": shap_raw.get("throughput_slope", -0.8)},
-            {"Feature": "Die Junction Temp (°C)", "SHAP_Impact_ms": shap_raw.get("node_temperature_celsius", 0.6)}
-        ])
+        shap_items = [
+            ("Packet Loss Rate (%)", shap_raw.get("packet_drop_percentage", 5.2)),
+            ("TSN Buffer Saturation (%)", shap_raw.get("buffer_utilization_percentage", 3.4)),
+            ("Dynamic Cluster Regime", shap_raw.get("dynamic_operational_label", 2.1)),
+            ("Throughput Trend Slope", shap_raw.get("throughput_slope", -0.8)),
+            ("Die Junction Temp (°C)", shap_raw.get("node_temperature_celsius", 0.6))
+        ]
         
-        shap_chart = alt.Chart(shap_df).mark_bar().encode(
-            x=alt.X("SHAP_Impact_ms:Q", axis=alt.Axis(title="Marginal Latency Impact (Δ ms)", labelColor="#64748b", titleColor="#94a3b8")),
-            y=alt.Y("Feature:N", sort="-x", axis=alt.Axis(title=None, labelColor="#e2e8f0")),
-            color=alt.condition(
-                alt.datum.SHAP_Impact_ms > 0,
-                alt.value("#ef4444"),
-                alt.value("#10b981")
-            )
-        ).properties(height=240)
-        st.altair_chart(shap_chart, use_container_width=True)
+        bar_rows = []
+        for feat, val in shap_items:
+            pct = min(100, int((abs(val) / 8.0) * 100))
+            col = "#ef4444" if val > 0 else "#10b981"
+            bar_rows.append(f"""
+            <div style="margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: 'JetBrains Mono', monospace; margin-bottom: 2px;">
+                    <span style="color: #cbd5e1;">{feat}</span>
+                    <span style="color: {col}; font-weight: bold;">{'+' if val>0 else ''}{val:.2f} ms</span>
+                </div>
+                <div style="background: #0b0f17; border-radius: 2px; height: 6px; width: 100%; overflow: hidden;">
+                    <div style="background: {col}; height: 6px; width: {pct}%;"></div>
+                </div>
+            </div>
+            """)
+            
+        st.html(f"""
+        <div class="scada-panel" style="padding: 14px 16px; height: 240px; box-sizing: border-box;">
+            {''.join(bar_rows)}
+        </div>
+        """)
 
     with c2:
         st.markdown("##### Feature Store Rolling Window Statistics (30s)")
@@ -1072,7 +1215,16 @@ def render_treeshap_feature_store():
             {"Signal": "TSN Buffer Util", "Mean": f"{chart_df['Buffer_Util'].mean():.2f} %", "Max": f"{chart_df['Buffer_Util'].max():.2f} %", "StdDev": f"{chart_df['Buffer_Util'].std():.2f}", "Status": "NOMINAL"},
             {"Signal": "Junction Temp", "Mean": f"{chart_df['Temperature'].mean():.2f} °C", "Max": f"{chart_df['Temperature'].max():.2f} °C", "StdDev": f"{chart_df['Temperature'].std():.2f}", "Status": "NOMINAL"}
         ]
-        st.dataframe(pd.DataFrame(stats_data), use_container_width=True, height=240)
+        
+        stat_rows = "".join([f"<tr><td style='color:#38bdf8; font-weight:bold;'>{s['Signal']}</td><td>{s['Mean']}</td><td>{s['Max']}</td><td>{s['StdDev']}</td><td style='color:#10b981; font-weight:bold;'>{s['Status']}</td></tr>" for s in stats_data])
+        st.html(f"""
+        <div class="scada-panel" style="padding:0; overflow:hidden; height: 240px;">
+            <table class="scada-table">
+                <thead><tr><th>TELEMETRY SIGNAL</th><th>MEAN (30S)</th><th>PEAK (MAX)</th><th>STD DEV</th><th>QUALITY</th></tr></thead>
+                <tbody>{stat_rows}</tbody>
+            </table>
+        </div>
+        """)
 
 # ---------------------------------------------------------------------
 # VIEW 6: QOS POLICY, TRAFFIC SHAPING & SAFETY INTERLOCKS
@@ -1114,7 +1266,41 @@ def render_incident_audit_soe():
     st.markdown("<p style='font-size: 11.5px; color: #64748b; margin-top: -6px;'>Immutable chronological audit record conforming to ISA-18.2 / IEC 62443 cyber-physical compliance.</p>", unsafe_allow_html=True)
 
     incidents_df = pd.DataFrame(st.session_state.incident_logs)
-    st.dataframe(incidents_df.iloc[::-1], use_container_width=True, height=280)
+    
+    rows_html = []
+    for log in st.session_state.incident_logs[::-1]:
+        p_class = "badge-p1" if "CRIT" in log["Priority"] or "FAILOVER" in log.get("Quality", "") else ("badge-p2" if "WARN" in log["Priority"] else "badge-p3")
+        rows_html.append(f"""
+        <tr>
+            <td style="color:#94a3b8;">{log['Timestamp']}</td>
+            <td style="color:#f8fafc; font-weight:bold;">{log.get('Alarm_ID', 'ALM-1000')}</td>
+            <td><span class="{p_class}">{log['Priority']}</span></td>
+            <td style="color:#38bdf8;">{log.get('Tag', 'SYS')}</td>
+            <td>{log['Event']}</td>
+            <td style="color:#64748b;">{log.get('Quality', 'GOOD_0x00')}</td>
+        </tr>
+        """)
+
+    table_html = f"""
+    <div class="scada-panel" style="padding: 0; overflow: hidden; margin-bottom: 14px;">
+        <table class="scada-table">
+            <thead>
+                <tr>
+                    <th style="width: 90px;">TIMESTAMP</th>
+                    <th style="width: 110px;">ALARM ID</th>
+                    <th style="width: 90px;">PRIORITY</th>
+                    <th style="width: 130px;">TAG NAME</th>
+                    <th>EVENT DESCRIPTION</th>
+                    <th style="width: 120px;">QUALITY CODE</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows_html)}
+            </tbody>
+        </table>
+    </div>
+    """
+    st.html(table_html)
 
     d1, d2 = st.columns(2)
     with d1:
