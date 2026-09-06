@@ -1,0 +1,62 @@
+services:
+  edge-gateway:
+    build: .
+    command: python -m uvicorn edge_gateway.gateway_service:app --host 0.0.0.0 --port 8001
+    ports:
+      - "8001:8001"
+    environment:
+      - HELM_ENVIRONMENT=production
+      - HELM_GATEWAY_PORT=8001
+    restart: unless-stopped
+
+  ingestion-service:
+    build: .
+    command: python -m uvicorn ingestion_service.service:app --host 0.0.0.0 --port 8002
+    ports:
+      - "8002:8002"
+    environment:
+      - HELM_ENVIRONMENT=production
+      - HELM_INGESTION_PORT=8002
+    restart: unless-stopped
+
+  ml-inference-service:
+    build: .
+    command: python -m uvicorn ml_inference_service.server:app --host 0.0.0.0 --port 8003
+    ports:
+      - "8003:8003"
+    environment:
+      - HELM_ENVIRONMENT=production
+      - HELM_ML_SERVICE_PORT=8003
+    restart: unless-stopped
+
+  control-service:
+    build: .
+    command: python -m uvicorn control_service.service:app --host 0.0.0.0 --port 8004
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "8004:8004"
+    environment:
+      - HELM_ENVIRONMENT=production
+      - HELM_CONTROL_SERVICE_PORT=8004
+    restart: unless-stopped
+
+  scada-ui:
+    build: .
+    command: streamlit run src/app.py --server.port=8505 --server.address=0.0.0.0
+    ports:
+      - "8505:8505"
+    depends_on:
+      - edge-gateway
+      - ingestion-service
+      - ml-inference-service
+      - control-service
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.50.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    restart: unless-stopped

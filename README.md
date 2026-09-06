@@ -139,23 +139,54 @@ $$\Omega(f_t) = \gamma T + \frac{1}{2}\lambda \sum_{j=1}^T w_j^2$$
 
 ---
 
-## Repository Layout
+## Repository Layout & Microservices Architecture
 
 ```text
 HELM-IIoT/
-├── .gitignore                      # Python, OS, and virtual environment ignore rules
-├── README.md                       # Master project documentation
-├── requirements.txt                # Pinned production dependencies
-├── labeled_telemetry.csv           # DBSCAN-clustered training dataset
-├── processed_telemetry.csv         # Normalized feature matrix
-├── predictive_edge_engine.json     # Serialized XGBoost model weights
-├── src/
+├── config/                         # Centralized Pydantic-Settings & .env validation
+│   └── settings.py
+├── edge_gateway/                   # Phase 1 & 2: Hardware Ingress & Protocol Adapters
+│   ├── adapters/                   # MQTT v5, Modbus TCP, OPC-UA decoders
+│   ├── latency_prober.py           # High-precision true socket RTT prober
+│   ├── schemas.py                  # Strict telemetry data quality & SLA validation
+│   └── gateway_service.py          # FastAPI Gateway microservice
+├── ingestion_service/              # Phase 2: Real-Time Feature Store & Event Bus
+│   ├── bus.py                      # Streaming async event backbone
+│   ├── feature_store.py            # Rolling window, lag features (t-1, t-2), trend slopes
+│   └── service.py                  # Ingestion & feature buffer microservice
+├── ml_inference_service/           # Phase 3: Edge ML, Online Clustering & Drift Engine
+│   ├── online_cluster.py           # Online regime categorizer (MiniBatch/DBSTREAM)
+│   ├── drift_detector.py           # PSI & KS-Test data drift detector
+│   ├── train_pipeline.py           # TimeSeriesSplit cross-validation pipeline
+│   └── server.py                   # Sub-millisecond XGBoost REST inference API
+├── control_service/                # Phase 4: Closed-Loop QoS Mitigation & HA Controller
+│   ├── traffic_shaper.py           # Linux TC token bucket filter (TBF) interface
+│   ├── ha_failover.py              # Hot standby Node Delta failover coordinator
+│   ├── safety_guard.py             # Dead man's switch, 5s anti-flapping debounce
+│   └── service.py                  # FastAPI control plane microservice
+├── scada_ui/                       # Phase 5: SCADA Operations HUD & Client SDK
+│   └── client.py                   # Microservices client integration SDK
+├── monitoring/                     # Observability & Metrics
+│   ├── logger.py                   # Structlog structured JSON logger
+│   ├── metrics.py                  # Prometheus metrics exporter
+│   └── prometheus.yml              # Prometheus scrape configuration
+├── src/                            # Classic execution modules
 │   ├── app.py                      # Streamlit SCADA operations control center
 │   ├── data_pipeline.py            # Telemetry synthesis, imputation & scaling
 │   ├── clustering_engine.py        # DBSCAN clustering & silhouette validation
 │   └── ensemble_training.py        # Supervised XGBoost regression pipeline
-└── tests/
-    └── test_pipeline.py            # Automated pytest verification suite
+├── tests/                          # 24 Automated Unit, Integration & Endpoint Tests
+│   ├── test_config.py
+│   ├── test_gateway_adapters.py
+│   ├── test_latency_prober.py
+│   ├── test_feature_store.py
+│   ├── test_ml_service.py
+│   ├── test_control_mitigation.py
+│   ├── test_fastapi_endpoints.py
+│   └── test_system_integration.py
+├── docker-compose.yml              # Full microservices fleet orchestration
+├── Dockerfile                      # Multi-stage minimal footprint container
+└── .github/workflows/ci.yml        # Automated CI/CD pipeline
 ```
 
 ---

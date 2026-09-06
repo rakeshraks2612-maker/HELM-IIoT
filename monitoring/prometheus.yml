@@ -1,0 +1,20 @@
+global:
+  scrape_interval: 1s
+  evaluation_interval: 1s
+
+scrape_configs:
+  - job_name: 'helm-edge-gateway'
+    static_configs:
+      - targets: ['gateway-service:8001']
+
+  - job_name: 'helm-ingestion-service'
+    static_configs:
+      - targets: ['ingestion-service:8002']
+
+  - job_name: 'helm-ml-inference'
+    static_configs:
+      - targets: ['ml-inference-service:8003']
+
+  - job_name: 'helm-control-service'
+    static_configs:
+      - targets: ['control-service:8004']
