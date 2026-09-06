@@ -27,7 +27,6 @@ from config.settings import settings
 # ---------------------------------------------------------------------
 st.set_page_config(
     page_title="HELM-IIoT | Industrial SCADA Control Center",
-    page_icon="🏭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -520,8 +519,8 @@ with st.sidebar:
     st.html("""
     <div style="padding: 6px 0 12px 0; border-bottom: 1px solid #1e293b; margin-bottom: 12px;">
         <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 14px;">
-                🏭
+            <div style="background: #1e293b; border: 1px solid #334155; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
             </div>
             <div>
                 <div style="font-size: 13px; font-weight: 800; color: #f8fafc; letter-spacing: 0.3px;">
@@ -592,7 +591,7 @@ with st.sidebar:
         override_throughput = st.slider("Ingress Rate (Mbps)", 10.0, 150.0, 85.0, key="sb_ov_thru")
         override_drops = st.slider("Packet Loss Rate (%)", 0.0, 5.0, 0.35, key="sb_ov_drops")
         override_buffer = st.slider("Buffer Saturation (%)", 5.0, 100.0, 42.0, key="sb_ov_buff")
-        override_temp = st.slider("Junction Temp (°C)", 30.0, 85.0, 48.0, key="sb_ov_temp")
+        override_temp = st.slider("Junction Temp (C)", 30.0, 85.0, 48.0, key="sb_ov_temp")
         run_simulation = False
     else:
         stress_level = st.slider("Industrial Load Multiplier", 1.0, 3.0, 1.0, step=0.25, key="sb_stress")
@@ -621,7 +620,7 @@ def render_industrial_header(timestamp):
                 {f'<span style="background: #7f1d1d; border: 1px solid #dc2626; color: #fca5a5; font-size: 9px; padding: 1px 6px; border-radius: 3px; font-family: \'JetBrains Mono\', monospace; font-weight: 700;">FAULT: {st.session_state.chaos_mode.upper()}</span>' if st.session_state.chaos_mode != 'None' else ''}
             </div>
             <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">
-                RT-PREEMPT Kernel 6.6.14-rt | Cyclic Scan: <b>10.0 ms</b> | Physical Socket RTT: <b>3.42 ms</b> | Jitter: <b>±0.15 ms</b>
+                RT-PREEMPT Kernel 6.6.14-rt | Cyclic Scan: <b>10.0 ms</b> | Physical Socket RTT: <b>3.42 ms</b> | Jitter: <b>+/-0.15 ms</b>
             </div>
         </div>
         <div style="display: flex; align-items: center; gap: 12px;">
@@ -629,7 +628,7 @@ def render_industrial_header(timestamp):
                 SYS CLOCK: <span style="color: #f8fafc; font-weight: 700;">{timestamp}</span>
             </div>
             <div style="background: #064e3b; border: 1px solid #059669; padding: 3px 10px; border-radius: 3px; font-size: 10.5px; color: #34d399; font-weight: 700; font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; gap: 6px;">
-                <span>●</span> OT-LINK ONLINE
+                <span style="display:inline-block; width:6px; height:6px; background:#10b981; border-radius:50%;"></span> OT-LINK ONLINE
             </div>
         </div>
     </div>
@@ -930,7 +929,7 @@ def render_ai_copilot_workspace():
     timestamp = time.strftime("%H:%M:%S")
     render_industrial_header(timestamp)
 
-    st.markdown("#### ⚡ AI SCADA Copilot & Autonomous RCA Incident Engine")
+    st.markdown("#### AI SCADA Copilot & Autonomous RCA Incident Engine")
     st.markdown("<p style='font-size: 11.5px; color: #64748b; margin-top: -6px;'>Continuous multi-signal cyber-physical correlation correlating socket RTT, TreeSHAP attributions, and closed-loop actuation.</p>", unsafe_allow_html=True)
 
     chart_df = st.session_state.history
@@ -1012,7 +1011,7 @@ def render_ai_copilot_workspace():
                 st.markdown(f"###### Recommended Actuation: `{diag['mitigation_action'].upper()}`")
                 st.markdown(f"<p style='font-size: 11px; color: #94a3b8;'>Target: <b>{diag['action_params'].get('target_device', 'PLC_NODE_ALPHA')}</b> | Reason: {diag['action_params'].get('reason')}</p>", unsafe_allow_html=True)
                 
-                if st.button("⚡ Execute Recommended Mitigation", key="btn_exec_rca_mitigation"):
+                if st.button("Execute Recommended Mitigation", key="btn_exec_rca_mitigation"):
                     res = helm_client.execute_mitigation(
                         action=diag["mitigation_action"],
                         target_device=diag["action_params"].get("target_device", "PLC_NODE_ALPHA"),
@@ -1029,15 +1028,15 @@ def render_ai_copilot_workspace():
         st.markdown("##### Expert Operator Diagnostics Console")
         q1, q2 = st.columns(2)
         with q1:
-            if st.button("🔍 Root Cause Breakdown", key="btn_q_rca"):
+            if st.button("Root Cause Breakdown", key="btn_q_rca"):
                 st.info(f"**Root Cause**: Forecasted latency is **{cur_pred:.2f} ms**. Dominant factor: **{diag['primary_vector']}** with marginal impact of **+{shap_vals.get('packet_drop_percentage', 3.8):.1f} ms**.")
-            if st.button("🌐 PLC Redundancy Status", key="btn_q_fleet"):
-                st.success(f"**Redundancy Matrix**: Primary Node Alpha is active. Standby Node Delta is {'🔥 FORWARDING (FAILOVER ENGAGED)' if ha_active else '🟢 HOT STANDBY READY'}.")
+            if st.button("PLC Redundancy Status", key="btn_q_fleet"):
+                st.success(f"**Redundancy Matrix**: Primary Node Alpha is active. Standby Node Delta is {'[FAILOVER ACTIVE: FORWARDING]' if ha_active else '[HOT STANDBY READY]'}.")
         with q2:
-            if st.button("🛡️ TSN SLA Risk Index", key="btn_q_sla"):
+            if st.button("TSN SLA Risk Index", key="btn_q_sla"):
                 prob = min(99.0, max(5.0, (cur_pred / settings.sla_latency_threshold_ms) * 100))
                 st.warning(f"**SLA Risk**: Operating at **{cur_pred:.1f} / {settings.sla_latency_threshold_ms:.0f} ms** ({prob:.1f}% capacity). Anti-flapping safety guard active.")
-            if st.button("📋 IEC Compliance Audit", key="btn_q_audit"):
+            if st.button("IEC Compliance Audit", key="btn_q_audit"):
                 report = copilot_engine.generate_compliance_audit_summary(st.session_state.incident_logs)
                 st.markdown(report)
 
