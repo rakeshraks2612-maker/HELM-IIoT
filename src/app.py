@@ -35,7 +35,7 @@ st.set_page_config(
 # PERSISTENT SESSION STATE INITIALIZATION
 # ---------------------------------------------------------------------
 if "active_nav" not in st.session_state:
-    st.session_state.active_nav = "Live SCADA Telemetry"
+    st.session_state.active_nav = "⬡ Live SCADA Telemetry"
 if "enable_mitigation" not in st.session_state:
     st.session_state.enable_mitigation = True
 if "enable_throttling" not in st.session_state:
@@ -536,13 +536,13 @@ with st.sidebar:
 
     st.markdown("<div style='font-size:9.5px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>SCADA WORKSPACES</div>", unsafe_allow_html=True)
     nav_labels = [
-        "Live SCADA Telemetry",
-        "AI SCADA Copilot & RCA",
-        "Fieldbus Topology & CAD",
-        "Edge Fleet & Node Assets",
-        "TreeSHAP XAI & Feature Store",
-        "QoS Actuation & Shaper",
-        "Incident Audit & SOE Log"
+        "⬡ Live SCADA Telemetry",
+        "◈ AI SCADA Copilot & RCA",
+        "☊ Fieldbus Topology & CAD",
+        "▤ Edge Fleet & Node Assets",
+        "⋈ TreeSHAP XAI & Feature Store",
+        "⎋ QoS Actuation & Shaper",
+        "⌸ Incident Audit & SOE Log"
     ]
     selected_nav = st.radio(
         "Navigation",
@@ -781,22 +781,22 @@ def render_live_scada_telemetry():
         st.markdown("<div style='font-size:9.5px; font-weight:700; color:#64748b; font-family:monospace; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px;'>INDUSTRIAL FAULT INJECTION TEST HARNESS</div>", unsafe_allow_html=True)
         cb1, cb2, cb3, cb4 = st.columns(4)
         with cb1:
-            if st.button("Inject Ingress Bandwidth Burst", key="btn_chaos_ddos"):
+            if st.button("↑ Ingress Bandwidth Burst", key="btn_chaos_ddos"):
                 st.session_state.chaos_mode = "Traffic Spike"
                 st.toast("Fault Injected: Ingress Bandwidth Surge (140+ Mbps).")
                 st.rerun()
         with cb2:
-            if st.button("Inject Frame Loss Burst", key="btn_chaos_drop"):
+            if st.button("✕ Packet Loss Burst", key="btn_chaos_drop"):
                 st.session_state.chaos_mode = "Packet Loss Burst"
                 st.toast("Fault Injected: Frame Loss Surge (>3.0% Loss).")
                 st.rerun()
         with cb3:
-            if st.button("Inject Core Thermal Surge", key="btn_chaos_temp"):
+            if st.button("▲ Core Thermal Surge", key="btn_chaos_temp"):
                 st.session_state.chaos_mode = "Thermal Surge"
                 st.toast("Fault Injected: Core Thermal Surge (>75°C).")
                 st.rerun()
         with cb4:
-            if st.button("Restore Nominal Baseline", key="btn_chaos_clear"):
+            if st.button("⟳ Restore Nominal Baseline", key="btn_chaos_clear"):
                 st.session_state.chaos_mode = "None"
                 st.toast("System State Restored: Nominal Baseline Operational.")
                 st.rerun()
@@ -919,8 +919,8 @@ def render_live_scada_telemetry():
     mae = mean_absolute_error(chart_df["Actual_Latency"], chart_df["Predicted_Latency"])
     e_c1, e_c2, e_c3 = st.columns([2.5, 1, 1])
     e_c1.info(f"Predictive Model MAE: **{mae:.4f} ms** | Cycle Overhead: **{compute_overhead:.2f} ms** | Active Policy: **ISA-101 HMI Compliant**")
-    e_c2.download_button("Export SOE Log (.CSV)", data=pd.DataFrame(st.session_state.incident_logs).to_csv(index=False).encode('utf-8'), file_name="scada_soe_log.csv", mime="text/csv", key="btn_dl_soe_csv")
-    e_c3.download_button("Export Telemetry (.JSON)", data=chart_df.to_json(orient="records", indent=2).encode('utf-8'), file_name="scada_telemetry.json", mime="application/json", key="btn_dl_telemetry_json")
+    e_c2.download_button("⤓ Export SOE Log (.CSV)", data=pd.DataFrame(st.session_state.incident_logs).to_csv(index=False).encode('utf-8'), file_name="scada_soe_log.csv", mime="text/csv", key="btn_dl_soe_csv")
+    e_c3.download_button("⤓ Export Telemetry (.JSON)", data=chart_df.to_json(orient="records", indent=2).encode('utf-8'), file_name="scada_telemetry.json", mime="application/json", key="btn_dl_telemetry_json")
 
 # ---------------------------------------------------------------------
 # VIEW 2: AI SCADA COPILOT & AUTONOMOUS ROOT CAUSE ANALYSIS (RCA)
@@ -1011,7 +1011,7 @@ def render_ai_copilot_workspace():
                 st.markdown(f"###### Recommended Actuation: `{diag['mitigation_action'].upper()}`")
                 st.markdown(f"<p style='font-size: 11px; color: #94a3b8;'>Target: <b>{diag['action_params'].get('target_device', 'PLC_NODE_ALPHA')}</b> | Reason: {diag['action_params'].get('reason')}</p>", unsafe_allow_html=True)
                 
-                if st.button("Execute Recommended Mitigation", key="btn_exec_rca_mitigation"):
+                if st.button("⏵ Execute Recommended Mitigation", key="btn_exec_rca_mitigation"):
                     res = helm_client.execute_mitigation(
                         action=diag["mitigation_action"],
                         target_device=diag["action_params"].get("target_device", "PLC_NODE_ALPHA"),
@@ -1028,15 +1028,15 @@ def render_ai_copilot_workspace():
         st.markdown("##### Expert Operator Diagnostics Console")
         q1, q2 = st.columns(2)
         with q1:
-            if st.button("Root Cause Breakdown", key="btn_q_rca"):
+            if st.button("⌕ Root Cause Breakdown", key="btn_q_rca"):
                 st.info(f"**Root Cause**: Forecasted latency is **{cur_pred:.2f} ms**. Dominant factor: **{diag['primary_vector']}** with marginal impact of **+{shap_vals.get('packet_drop_percentage', 3.8):.1f} ms**.")
-            if st.button("PLC Redundancy Status", key="btn_q_fleet"):
+            if st.button("◈ PLC Redundancy Status", key="btn_q_fleet"):
                 st.success(f"**Redundancy Matrix**: Primary Node Alpha is active. Standby Node Delta is {'[FAILOVER ACTIVE: FORWARDING]' if ha_active else '[HOT STANDBY READY]'}.")
         with q2:
-            if st.button("TSN SLA Risk Index", key="btn_q_sla"):
+            if st.button("⚠ TSN SLA Risk Index", key="btn_q_sla"):
                 prob = min(99.0, max(5.0, (cur_pred / settings.sla_latency_threshold_ms) * 100))
                 st.warning(f"**SLA Risk**: Operating at **{cur_pred:.1f} / {settings.sla_latency_threshold_ms:.0f} ms** ({prob:.1f}% capacity). Anti-flapping safety guard active.")
-            if st.button("IEC Compliance Audit", key="btn_q_audit"):
+            if st.button("✓ IEC Compliance Audit", key="btn_q_audit"):
                 report = copilot_engine.generate_compliance_audit_summary(st.session_state.incident_logs)
                 st.markdown(report)
 
@@ -1152,10 +1152,10 @@ def render_edge_fleet_assets():
 
     f_b1, f_b2 = st.columns(2)
     with f_b1:
-        if st.button("Execute Physical Socket RTT Probing", key="btn_probe_nodes"):
+        if st.button("⌕ Physical Socket RTT Probing", key="btn_probe_nodes"):
             st.toast("Socket Latency Prober: Node Alpha (0.8ms), Node Beta (1.1ms), Node Gamma (0.5ms), Node Delta (0.9ms) — PASS.")
     with f_b2:
-        if st.button("Actuate Manual Redundancy Switch", key="btn_manual_failover"):
+        if st.button("⇄ Actuate Manual Redundancy Switch", key="btn_manual_failover"):
             st.session_state.failover_events += 1
             st.toast("Traffic successfully rerouted to Standby Node Delta.")
 
@@ -1309,7 +1309,7 @@ def render_incident_audit_soe():
     d1, d2 = st.columns(2)
     with d1:
         st.download_button(
-            label="Download Compliance Audit Report (.CSV)",
+            label="⤓ Download Compliance Audit Report (.CSV)",
             data=incidents_df.to_csv(index=False).encode('utf-8'),
             file_name="iiot_compliance_audit.csv",
             mime="text/csv",
@@ -1317,7 +1317,7 @@ def render_incident_audit_soe():
         )
     with d2:
         st.download_button(
-            label="Download Complete Telemetry Stream (.JSON)",
+            label="⤓ Download Complete Telemetry Stream (.JSON)",
             data=st.session_state.history.to_json(orient="records", indent=2).encode('utf-8'),
             file_name="iiot_telemetry_stream.json",
             mime="application/json",
@@ -1327,17 +1327,17 @@ def render_incident_audit_soe():
 # ---------------------------------------------------------------------
 # MASTER WORKSPACE ROUTER
 # ---------------------------------------------------------------------
-if st.session_state.active_nav == "Live SCADA Telemetry":
+if "Live SCADA Telemetry" in st.session_state.active_nav:
     render_live_scada_telemetry()
-elif st.session_state.active_nav == "AI SCADA Copilot & RCA":
+elif "AI SCADA Copilot" in st.session_state.active_nav:
     render_ai_copilot_workspace()
-elif st.session_state.active_nav == "Fieldbus Topology & CAD":
+elif "Fieldbus Topology" in st.session_state.active_nav:
     render_fieldbus_topology_cad()
-elif st.session_state.active_nav == "Edge Fleet & Node Assets":
+elif "Edge Fleet" in st.session_state.active_nav:
     render_edge_fleet_assets()
-elif st.session_state.active_nav == "TreeSHAP XAI & Feature Store":
+elif "TreeSHAP" in st.session_state.active_nav:
     render_treeshap_feature_store()
-elif st.session_state.active_nav == "QoS Actuation & Shaper":
+elif "QoS Actuation" in st.session_state.active_nav:
     render_qos_policy_shaper()
-elif st.session_state.active_nav == "Incident Audit & SOE Log":
+elif "Incident Audit" in st.session_state.active_nav:
     render_incident_audit_soe()
