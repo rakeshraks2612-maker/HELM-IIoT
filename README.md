@@ -3,6 +3,8 @@
 # HELM-IIoT
 ### Hybrid Edge Latency Monitor & Autonomous QoS Optimization for Industrial Networks
 
+[![Live Demo](https://img.shields.io/badge/Streamlit%20Cloud-Live%20Console-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://helm-iiot-qpebjywidnqgvvfetxcvyk.streamlit.app/)
+
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.40+-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![XGBoost](https://img.shields.io/badge/XGBoost-2.0+-1192d3?style=flat-square&logo=xgboost&logoColor=white)](https://xgboost.readthedocs.io/)
@@ -14,6 +16,7 @@
   A cyber-physical edge computing architecture combining unsupervised density profiling (DBSCAN) and supervised gradient tree boosting (XGBoost) to forecast network latency, enforce automated QoS traffic shedding, and guarantee high-availability failover in deterministic smart manufacturing environments.
 </p>
 
+[🚀 **Open Live Streamlit Console**](https://helm-iiot-qpebjywidnqgvvfetxcvyk.streamlit.app/) •
 [System Architecture](#system-architecture) •
 [Core Capabilities](#core-capabilities) •
 [Mathematical Formulations](#mathematical-formulations) •
